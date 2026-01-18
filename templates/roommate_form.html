@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roommate Form</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css')}}">
+</head>
+<body>
+    <h1>Roommate Compatibility Form</h1>
+
+    <form method="POST" action="/roommate">
+
+       
+        <label>Name:</label><br>
+        <input type="text" name="name" required><br><br>
+
+        <label>Gender:</label><br>
+        <select name="gender" required>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+            <option value="Other">Other</option>
+        </select><br><br>
+
+        <label>Department:</label><br>
+        <input type="text" name="department" required><br><br>
+
+        <label>Year:</label><br>
+        <input type="number" name="year" min="1" max="5" required><br><br>
+
+        <label>Hostel:</label><br>
+       <select name="hostel_id">
+            <option value="1">Boys Hostel</option>
+            <option value="2">Girls Hostel</option>
+       </select><br><br>
+
+        <label>Sleep Schedule:</label><br>
+        <select name="sleep_time">
+            <option value="Early bird">Early bird (10PM – 6AM)</option>
+            <option value="Night owl">Night owl (1AM – 9AM)</option>
+            <option value="Flexible">Flexible / Irregular</option>
+        </select><br><br>
+
+        <label>Cleanliness Level (1 – 5):</label><br>
+        <select name="cleanliness_level">
+            <option value="1">1 – Very messy</option>
+            <option value="2">2 – Messy</option>
+            <option value="3">3 – Average</option>
+            <option value="4">4 – Clean</option>
+            <option value="5">5 – Very clean</option>
+        </select><br><br>
+
+        <label>Noise Tolerance (1 – 5):</label><br>
+        <select name="noise_tolerance">
+            <option value="1">1 – Cannot tolerate any noise</option>
+            <option value="2">2 – Low tolerance</option>
+            <option value="3">3 – Average</option>
+            <option value="4">4 – High tolerance</option>
+            <option value="5">5 – Can tolerate loud noise</option>
+        </select><br><br>
+
+        <label>Guest Preference:</label><br>
+        <select name="guest_preference">
+            <option value="True">Yes</option>
+            <option value="False">No</option>
+        </select><br><br>
+
+        <label>Study Style:</label><br>
+        <select name="study_style">
+            <option value="Quiet solo">Quiet solo study</option>
+            <option value="Group study">Group / collaborative</option>
+            <option value="Music allowed">Music while studying</option>
+            <option value="Flexible">Flexible</option>
+        </select><br><br>
+
+        <!-- Room Request -->
+        <label>Preferred Room Type:</label><br>
+        <select name="preferred_room_type">
+            <option value="Single">Single</option>
+            <option value="Double">Double</option>
+            <option value="Any">Any</option>
+        </select><br><br>
+
+        <input type="submit" value="Submit">
+    </form>
+</body>
+</html>
