@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h1>Student Dashboard</h1>
+
+<h2>Basic Information</h2>
+<p><strong>Name:</strong> {{ student.name }}</p>
+<p><strong>Department:</strong> {{ student.department }}</p>
+<p><strong>Year:</strong> {{ student.year }}</p>
+<p><strong>Hostel:</strong> {{ student.hostel_name }}</p>
+
+<h2>Lifestyle Preferences</h2>
+<p><strong>Sleep Schedule:</strong> {{ preferences.sleep_time }}</p>
+<p><strong>Study Style:</strong> {{ preferences.study_style }}</p>
+<p><strong>Cleanliness Level:</strong> {{ preferences.cleanliness_level }}</p>
+<p><strong>Noise Tolerance:</strong> {{ preferences.noise_tolerance }}</p>
+
+<a href="/">⬅ Back to Home</a>
+
+</body>
+</html>
