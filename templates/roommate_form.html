@@ -1,123 +1,123 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roommate Form</title>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Roommate Form</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-</head>
-<body>
+    </head>
+    <body>
 
-<div class="container mt-5">
-    <div class="card shadow-lg">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Roommate Compatibility Form</h4>
+        <div class="container mt-5">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Roommate Compatibility Form</h4>
+                </div>
+
+                <div class="card-body">
+                    <form method="POST">
+
+                        <div class="mb-3">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Gender</label>
+                            <select name="gender" class="form-select" required>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Department</label>
+                            <input type="text" name="department" class="form-control" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Year</label>
+                            <input type="number" name="year" class="form-control" min="1" max="5" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Hostel</label>
+                            <select name="hostel_id" class="form-select">
+                                <option value="1">Boys Hostel</option>
+                                <option value="2">Girls Hostel</option>
+                            </select>
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-3">
+                            <label class="form-label">Sleep Schedule</label>
+                            <select name="sleep_time" class="form-select">
+                                <option value="Early bird">Early bird (10PM – 6AM)</option>
+                                <option value="Night owl">Night owl (1AM – 9AM)</option>
+                                <option value="Flexible">Flexible / Irregular</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Cleanliness Level</label>
+                            <select name="cleanliness_level" class="form-select">
+                                <option value="1">1 – Very messy</option>
+                                <option value="2">2 – Messy</option>
+                                <option value="3">3 – Average</option>
+                                <option value="4">4 – Clean</option>
+                                <option value="5">5 – Very clean</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Noise Tolerance</label>
+                            <select name="noise_tolerance" class="form-select">
+                                <option value="1">1 – Cannot tolerate any noise</option>
+                                <option value="2">2 – Low tolerance</option>
+                                <option value="3">3 – Average</option>
+                                <option value="4">4 – High tolerance</option>
+                                <option value="5">5 – Can tolerate loud noise</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Guest Preference</label>
+                            <select name="guest_preference" class="form-select">
+                                <option value="True">Yes</option>
+                                <option value="False">No</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Study Style</label>
+                            <select name="study_style" class="form-select">
+                                <option value="Quiet solo">Quiet solo</option>
+                                <option value="Group study">Group study</option>
+                                <option value="Music allowed">Music allowed</option>
+                                <option value="Flexible">Flexible</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Preferred Room Type</label>
+                            <select name="preferred_room_type" class="form-select">
+                                <option value="Single">Single</option>
+                                <option value="Double">Double</option>
+                                <option value="Any">Any</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100">Submit</button>
+
+                    </form>
+                </div>
+            </div>
         </div>
 
-        <div class="card-body">
-            <form method="POST">
-
-                <div class="mb-3">
-                    <label class="form-label">Name</label>
-                    <input type="text" name="name" class="form-control" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Gender</label>
-                    <select name="gender" class="form-select" required>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Department</label>
-                    <input type="text" name="department" class="form-control" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Year</label>
-                    <input type="number" name="year" class="form-control" min="1" max="5" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Hostel</label>
-                    <select name="hostel_id" class="form-select">
-                        <option value="1">Boys Hostel</option>
-                        <option value="2">Girls Hostel</option>
-                    </select>
-                </div>
-
-                <hr>
-
-                <div class="mb-3">
-                    <label class="form-label">Sleep Schedule</label>
-                    <select name="sleep_time" class="form-select">
-                        <option value="Early bird">Early bird (10PM – 6AM)</option>
-                        <option value="Night owl">Night owl (1AM – 9AM)</option>
-                        <option value="Flexible">Flexible / Irregular</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Cleanliness Level</label>
-                    <select name="cleanliness_level" class="form-select">
-                        <option value="1">1 – Very messy</option>
-                        <option value="2">2 – Messy</option>
-                        <option value="3">3 – Average</option>
-                        <option value="4">4 – Clean</option>
-                        <option value="5">5 – Very clean</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Noise Tolerance</label>
-                    <select name="noise_tolerance" class="form-select">
-                        <option value="1">1 – Cannot tolerate any noise</option>
-                        <option value="2">2 – Low tolerance</option>
-                        <option value="3">3 – Average</option>
-                        <option value="4">4 – High tolerance</option>
-                        <option value="5">5 – Can tolerate loud noise</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Guest Preference</label>
-                    <select name="guest_preference" class="form-select">
-                        <option value="True">Yes</option>
-                        <option value="False">No</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Study Style</label>
-                    <select name="study_style" class="form-select">
-                        <option value="Quiet solo">Quiet solo</option>
-                        <option value="Group study">Group study</option>
-                        <option value="Music allowed">Music allowed</option>
-                        <option value="Flexible">Flexible</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Preferred Room Type</label>
-                    <select name="preferred_room_type" class="form-select">
-                        <option value="Single">Single</option>
-                        <option value="Double">Double</option>
-                        <option value="Any">Any</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="btn btn-success w-100">Submit</button>
-
-            </form>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
 </html>

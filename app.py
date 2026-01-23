@@ -56,7 +56,7 @@ def login():
 
         if user and check_password_hash(user[1], password):
             session["user_id"] = user[0]
-            return redirect("/dashboard")
+            return redirect("/")
         return redirect("/login")
 
     return render_template("login.html")
@@ -146,7 +146,7 @@ def dashboard():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT s.name, s.department, s.year, h.hostel_name,
+        SELECT s.student_id, s.name, s.department, s.year, h.hostel_name,
                l.sleep_time, l.study_style, l.cleanliness_level, l.noise_tolerance
         FROM student s
         JOIN hostel h ON s.hostel_id = h.hostel_id
@@ -162,21 +162,64 @@ def dashboard():
         return "<h2>No data found for this user.</h2>"
 
     student = {
-        "name": data[0],
-        "department": data[1],
-        "year": data[2],
-        "hostel_name": data[3]
+        "student_id": data[0],
+        "name": data[1],
+        "department": data[2],
+        "year": data[3],
+        "hostel_name": data[4]
     }
 
     preferences = {
-        "sleep_time": data[4],
-        "study_style": data[5],
-        "cleanliness_level": data[6],
-        "noise_tolerance": data[7]
+        "sleep_time": data[5],
+        "study_style": data[6],
+        "cleanliness_level": data[7],
+        "noise_tolerance": data[8]
     }
 
     return render_template("dashboard.html", student=student, preferences=preferences)
 
+@app.route("/update_preferences", methods=["GET", "POST"])
+def update_preferences():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    student_id = session["user_id"]
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # Get current preferences
+    cur.execute("SELECT * FROM lifestyle_preferences WHERE student_id=%s", (student_id,))
+    pref = cur.fetchone()
+
+    if request.method == "POST":
+        sleep_time = request.form.get("sleep_time")
+        cleanliness_level = request.form.get("cleanliness_level")
+        noise_tolerance = request.form.get("noise_tolerance")
+        guest_preference = request.form.get("guest_preference") == "True"
+        study_style = request.form.get("study_style")
+
+        # Update preferences
+        if pref:
+            cur.execute("""
+                UPDATE lifestyle_preferences
+                SET sleep_time=%s, cleanliness_level=%s, noise_tolerance=%s,
+                    guest_preference=%s, study_style=%s
+                WHERE student_id=%s
+            """, (sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style, student_id))
+        else:
+            cur.execute("""
+                INSERT INTO lifestyle_preferences (student_id, sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (student_id, sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style))
+
+        conn.commit()
+        cur.close()
+        conn.close()
+        return redirect("/dashboard")
+
+    cur.close()
+    conn.close()
+    return render_template("update_preferences.html", pref=pref)
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)
