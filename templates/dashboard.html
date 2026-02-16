@@ -34,11 +34,9 @@
                     </div>
                 </div>
             </div>
-           {% if session["user_id"]|int == student.student_id %}
             <form action="/update_preferences" method="GET">
                 <button type="submit" class="btn btn-primary btn-sm mt-3">Update Preferences</button>
             </form>
-            {% endif %}
             <a href="/" class="btn btn-outline-dark mt-3">⬅ Home</a>
         </div>
         

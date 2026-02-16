@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Z7ma6MxFysggeGNr1UxYUFkkd3jmZ92jMIQShYYRNSZq06yHy7tDmEdg5rdf5ed
+\restrict sdTxawss358WPYKWmba9zf3M6o1B7cbDzjOMtTywCXeqF6UeL8oIqvexOMpaddD
 
 -- Dumped from database version 18.1
 -- Dumped by pg_dump version 18.1
@@ -292,7 +292,8 @@ CREATE TABLE public.student (
     gender character varying(10),
     department character varying(50),
     year integer,
-    hostel_id integer
+    hostel_id integer,
+    user_id integer
 );
 
 
@@ -318,6 +319,41 @@ ALTER SEQUENCE public.student_student_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE public.student_student_id_seq OWNED BY public.student.student_id;
+
+
+--
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.users (
+    id integer NOT NULL,
+    username character varying(100) NOT NULL,
+    password text NOT NULL
+);
+
+
+ALTER TABLE public.users OWNER TO postgres;
+
+--
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.users_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.users_id_seq OWNER TO postgres;
+
+--
+-- Name: users_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.users_id_seq OWNED BY public.users.id;
 
 
 --
@@ -377,6 +413,13 @@ ALTER TABLE ONLY public.student ALTER COLUMN student_id SET DEFAULT nextval('pub
 
 
 --
+-- Name: users id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users ALTER COLUMN id SET DEFAULT nextval('public.users_id_seq'::regclass);
+
+
+--
 -- Data for Name: compatibility_score; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -400,6 +443,8 @@ COPY public.hostel (hostel_id, hostel_name, hostel_type, total_rooms) FROM stdin
 
 COPY public.lifestyle_preferences (preference_id, student_id, sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style) FROM stdin;
 1	2	Early bird	1	1	t	Quiet solo
+2	3	Flexible	4	3	f	Quiet solo
+3	4	Flexible	4	3	f	Quiet solo
 \.
 
 
@@ -433,6 +478,8 @@ COPY public.room_assignment (assignment_id, room_id, student_id, assigned_date) 
 
 COPY public.roommate_request (request_id, student_id, preferred_room_type, request_status) FROM stdin;
 1	2	Single	\N
+2	3	Single	\N
+3	4	Single	\N
 \.
 
 
@@ -440,8 +487,20 @@ COPY public.roommate_request (request_id, student_id, preferred_room_type, reque
 -- Data for Name: student; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.student (student_id, name, gender, department, year, hostel_id) FROM stdin;
-2	sd	Male	sd	1	1
+COPY public.student (student_id, name, gender, department, year, hostel_id, user_id) FROM stdin;
+2	sd	Male	sd	1	1	\N
+3	Purnima Bhandari	Female	computer	3	2	\N
+4	Purnima Bhandari	Female	computer	3	2	\N
+\.
+
+
+--
+-- Data for Name: users; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.users (id, username, password) FROM stdin;
+1	purnima	scrypt:32768:8:1$5CwlvHBddYhGE5tH$6ac1a169fffb63a8123fab9aa6e82cd3802f4fb5f731574e02cea3a03585b53b1e32cb9b9df8b2713e14a20431dc1ba753836eca9d6924456f45979f3ec1b50c
+2	purnima2	scrypt:32768:8:1$JDPuMrGD8Pg0yRGF$6b2c5de01e6d632764f61f0154fe69ca08c6ea0cc6ef2973314975d998a759f82a64568a917ae96809c1a5973ee61246811ac12b42e8e3e9348a751b92bf5d80
 \.
 
 
@@ -463,7 +522,7 @@ SELECT pg_catalog.setval('public.hostel_hostel_id_seq', 2, true);
 -- Name: lifestyle_preferences_preference_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.lifestyle_preferences_preference_id_seq', 1, true);
+SELECT pg_catalog.setval('public.lifestyle_preferences_preference_id_seq', 3, true);
 
 
 --
@@ -491,14 +550,21 @@ SELECT pg_catalog.setval('public.room_room_id_seq', 1, false);
 -- Name: roommate_request_request_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.roommate_request_request_id_seq', 1, true);
+SELECT pg_catalog.setval('public.roommate_request_request_id_seq', 3, true);
 
 
 --
 -- Name: student_student_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.student_student_id_seq', 2, true);
+SELECT pg_catalog.setval('public.student_student_id_seq', 4, true);
+
+
+--
+-- Name: users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.users_id_seq', 2, true);
 
 
 --
@@ -571,6 +637,30 @@ ALTER TABLE ONLY public.roommate_request
 
 ALTER TABLE ONLY public.student
     ADD CONSTRAINT student_pkey PRIMARY KEY (student_id);
+
+
+--
+-- Name: student student_user_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.student
+    ADD CONSTRAINT student_user_id_key UNIQUE (user_id);
+
+
+--
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: users users_username_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_username_key UNIQUE (username);
 
 
 --
@@ -654,8 +744,16 @@ ALTER TABLE ONLY public.student
 
 
 --
+-- Name: student student_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.student
+    ADD CONSTRAINT student_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Z7ma6MxFysggeGNr1UxYUFkkd3jmZ92jMIQShYYRNSZq06yHy7tDmEdg5rdf5ed
+\unrestrict sdTxawss358WPYKWmba9zf3M6o1B7cbDzjOMtTywCXeqF6UeL8oIqvexOMpaddD
 
