@@ -1,19 +1,29 @@
 from flask import Flask, render_template, request, redirect, session
+import os
 import psycopg2
+from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 
+load_dotenv()
+
 app = Flask(__name__)
-app.secret_key = "secret123"
+app.secret_key = os.getenv("FLASK_SECRET_KEY", "secret123")
+
 
 def get_db_connection():
     return psycopg2.connect(
-        dbname="dormalign",
-        user="postgres",
-        password="1207",
-        host="localhost",
-        port="5432"
+        dbname=os.getenv("DB_NAME", "dormalign"),
+        user=os.getenv("DB_USER", "postgres"),
+        password=os.getenv("DB_PASSWORD", "1207"),
+        host=os.getenv("DB_HOST", "localhost"),
+        port=os.getenv("DB_PORT", "5432")
     )
 
+
+def get_student_id_by_user_id(cur, user_id):
+    cur.execute("SELECT student_id FROM student WHERE user_id = %s", (user_id,))
+    row = cur.fetchone()
+    return row[0] if row else None
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -89,23 +99,48 @@ def roommate():
         conn = get_db_connection()
         cur = conn.cursor()
 
-        cur.execute("""
-            INSERT INTO Student (name, gender, department, year, hostel_id)
-            VALUES (%s, %s, %s, %s, %s) RETURNING student_id
-        """, (name, gender, department, year, hostel_id))
-        student_id = cur.fetchone()[0]
+        user_id = session["user_id"]
+        student_id = get_student_id_by_user_id(cur, user_id)
+
+        if student_id:
+            cur.execute("""
+                UPDATE student
+                SET name = %s, gender = %s, department = %s, year = %s, hostel_id = %s
+                WHERE student_id = %s
+            """, (name, gender, department, year, hostel_id, student_id))
+        else:
+            cur.execute("""
+                INSERT INTO student (user_id, name, gender, department, year, hostel_id)
+                VALUES (%s, %s, %s, %s, %s, %s) RETURNING student_id
+            """, (user_id, name, gender, department, year, hostel_id))
+            student_id = cur.fetchone()[0]
 
         cur.execute("""
-            INSERT INTO Lifestyle_Preferences
+            INSERT INTO lifestyle_preferences
             (student_id, sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style)
             VALUES (%s, %s, %s, %s, %s, %s)
+            ON CONFLICT (student_id)
+            DO UPDATE SET
+                sleep_time = EXCLUDED.sleep_time,
+                cleanliness_level = EXCLUDED.cleanliness_level,
+                noise_tolerance = EXCLUDED.noise_tolerance,
+                guest_preference = EXCLUDED.guest_preference,
+                study_style = EXCLUDED.study_style
         """, (student_id, sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style))
 
-        cur.execute("""
-            INSERT INTO Roommate_Request
-            (student_id, preferred_room_type)
-            VALUES (%s, %s)
-        """, (student_id, preferred_room_type))
+        cur.execute("SELECT request_id FROM roommate_request WHERE student_id = %s", (student_id,))
+        request_row = cur.fetchone()
+        if request_row:
+            cur.execute("""
+                UPDATE roommate_request
+                SET preferred_room_type = %s
+                WHERE request_id = %s
+            """, (preferred_room_type, request_row[0]))
+        else:
+            cur.execute("""
+                INSERT INTO roommate_request (student_id, preferred_room_type)
+                VALUES (%s, %s)
+            """, (student_id, preferred_room_type))
 
         conn.commit()
         cur.close()
@@ -126,10 +161,10 @@ def submissions():
         SELECT s.student_id, s.name, s.gender, s.department, s.year, h.hostel_name,
                l.sleep_time, l.cleanliness_level, l.noise_tolerance, l.guest_preference, l.study_style,
                r.preferred_room_type
-        FROM Student s
-        JOIN Hostel h ON s.hostel_id = h.hostel_id
-        LEFT JOIN Lifestyle_Preferences l ON s.student_id = l.student_id
-        LEFT JOIN Roommate_Request r ON s.student_id = r.student_id
+        FROM student s
+        JOIN hostel h ON s.hostel_id = h.hostel_id
+        LEFT JOIN lifestyle_preferences l ON s.student_id = l.student_id
+        LEFT JOIN roommate_request r ON s.student_id = r.student_id
     """)
     students = cur.fetchall()
     cur.close()
@@ -151,7 +186,7 @@ def dashboard():
         FROM student s
         JOIN hostel h ON s.hostel_id = h.hostel_id
         LEFT JOIN lifestyle_preferences l ON s.student_id = l.student_id
-        WHERE s.student_id = %s
+        WHERE s.user_id = %s
     """, (session["user_id"],))
     
     data = cur.fetchone()
@@ -183,12 +218,21 @@ def update_preferences():
     if "user_id" not in session:
         return redirect("/login")
 
-    student_id = session["user_id"]
     conn = get_db_connection()
     cur = conn.cursor()
+    student_id = get_student_id_by_user_id(cur, session["user_id"])
+
+    if not student_id:
+        cur.close()
+        conn.close()
+        return redirect("/roommate")
 
     # Get current preferences
-    cur.execute("SELECT * FROM lifestyle_preferences WHERE student_id=%s", (student_id,))
+    cur.execute("""
+        SELECT sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style
+        FROM lifestyle_preferences
+        WHERE student_id = %s
+    """, (student_id,))
     pref = cur.fetchone()
 
     if request.method == "POST":

@@ -21,12 +21,14 @@ VALUES
 
 CREATE TABLE student (
     student_id SERIAL PRIMARY KEY,
+    user_id INT UNIQUE,
     name VARCHAR(100),
     gender VARCHAR(10),
     department VARCHAR(50),
     year INT,
     hostel_id INT,
-    FOREIGN KEY (hostel_id) REFERENCES hostel(hostel_id)
+    FOREIGN KEY (hostel_id) REFERENCES hostel(hostel_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 
