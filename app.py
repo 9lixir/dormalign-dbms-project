@@ -7,17 +7,21 @@ from werkzeug.security import generate_password_hash, check_password_hash
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "secret123")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
 
 def get_db_connection():
-    return psycopg2.connect(
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT")
-    )
+    database_url = os.environ.get("DATABASE_URL")
+    if database_url:
+        return psycopg2.connect(database_url)
+    else:
+        return psycopg2.connect(
+            dbname=os.getenv("DB_NAME"),
+            user=os.getenv("DB_USER"),
+            password=os.getenv("DB_PASSWORD"),
+            host=os.getenv("DB_HOST"),
+            port=os.getenv("DB_PORT")
+        )
 
 
 def get_student_id_by_user_id(cur, user_id):
@@ -35,7 +39,7 @@ def is_admin():
     user = cur.fetchone()
     cur.close()
     conn.close()
-    return user and user[0] == "admin"
+    return user is not None and user[0] == "admin"
 
 #compat scores calculation
 
@@ -398,7 +402,23 @@ def assign_roommate_pair(s1_id, s2_id):
 
     conn = get_db_connection()
     cur = conn.cursor()
+    cur.execute("""
+        SELECT assigned_roommate_id FROM roommate_request
+        WHERE student_id = %s
+        """, (s1_id,))
+    s1_assigned = cur.fetchone()
 
+    cur.execute("""
+        SELECT assigned_roommate_id FROM roommate_request
+        WHERE student_id = %s
+        """, (s2_id,))
+    s2_assigned = cur.fetchone()
+
+    if (s1_assigned and s1_assigned[0]) or (s2_assigned and s2_assigned[0]):
+        cur.close()
+        conn.close()
+        return "One of the students is already assigned!", 400
+    
     cur.execute("""
         UPDATE roommate_request
         SET assigned_roommate_id = %s, request_status='Assigned'
