@@ -1,20 +1,184 @@
 <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Submissions</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DormAlign | Submissions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
 
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    </head>
-    <body>
+        .navbar {
+            border-bottom: 1px solid #eee;
+            animation: slideDown 0.5s ease forwards;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
+        }
+        .navbar-brand { transition: letter-spacing 0.3s ease; }
+        .navbar-brand:hover { letter-spacing: 2px; }
 
-        <div class="container mt-5">
-            <h2 class="mb-4">Student Submissions</h2>
+        .nav-link {
+            position: relative;
+            transition: color 0.2s;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            left: 0; bottom: 0;
+            width: 0; height: 2px;
+            background: #0d6efd;
+            transition: width 0.25s ease;
+        }
+        .nav-link:hover::after { width: 100%; }
 
+        .page-header {
+            padding: 50px 0 30px;
+            animation: fadeUp 0.6s cubic-bezier(.22,1,.36,1) 0.1s both;
+        }
+        .page-title {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0);    }
+        }
+
+        .table-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            animation: fadeUp 0.6s cubic-bezier(.22,1,.36,1) 0.2s both;
+            margin-bottom: 24px;
+        }
+
+        .table {
+            margin: 0;
+            font-size: 0.875rem;
+        }
+
+        .table thead tr {
+            background: white;
+            border-bottom: 2px solid #edf2f7;
+        }
+        .table thead th {
+            font-size: 0.7rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #999;
+            padding: 14px 16px;
+            border: none;
+            white-space: nowrap;
+            background: white;
+        }
+
+        .table tbody tr {
+            border-bottom: 1px solid #f1f3f5;
+            opacity: 0;
+            transform: translateY(8px);
+            transition: background 0.15s;
+        }
+        .table tbody tr.visible {
+            animation: rowIn 0.35s ease forwards;
+        }
+        @keyframes rowIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .table tbody tr:last-child { border-bottom: none; }
+        .table tbody tr:hover { background: #f8fbff; }
+
+        .table tbody td {
+            padding: 12px 16px;
+            border: none;
+            vertical-align: middle;
+            color: #444;
+            font-weight: 500;
+        }
+
+        .table tbody td:first-child {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #bbb;
+        }
+
+        .badge-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .actions-wrap {
+            opacity: 0;
+            animation: fadeUp 0.5s ease 0.4s forwards;
+            margin-bottom: 60px;
+        }
+
+        .btn-home {
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+            transition: color 0.3s;
+        }
+        .btn-home::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: #212529;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+            z-index: 0;
+        }
+        .btn-home:hover::before { transform: scaleX(1); }
+        .btn-home:hover { color: white !important; }
+        .btn-home span { position: relative; z-index: 1; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="/">DORM<span class="text-dark">ALIGN</span></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <div class="py-3 px-4 border border-dark border-2 d-inline-block">
+                <h2 class="page-title m-0">Student Submissions</h2>
+            </div>
+        </div>
+
+        <div class="table-card">
             <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="table-dark">
+                <table class="table">
+                    <thead>
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
@@ -22,12 +186,12 @@
                             <th>Department</th>
                             <th>Year</th>
                             <th>Hostel</th>
-                            <th>Sleep</th>
-                            <th>Clean</th>
-                            <th>Noise</th>
-                            <th>Guests</th>
-                            <th>Study</th>
-                            <th>Room</th>
+                            <th><i class="fa-solid fa-moon me-1" style="color:#0d6efd;"></i>Sleep</th>
+                            <th><i class="fa-solid fa-broom me-1" style="color:#f59e0b;"></i>Clean</th>
+                            <th><i class="fa-solid fa-volume-high me-1" style="color:#0ea5e9;"></i>Noise</th>
+                            <th><i class="fa-solid fa-user-group me-1" style="color:#8b5cf6;"></i>Guests</th>
+                            <th><i class="fa-solid fa-book-open me-1" style="color:#198754;"></i>Study</th>
+                            <th><i class="fa-solid fa-door-open me-1" style="color:#ec4899;"></i>Room</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -50,10 +214,30 @@
                     </tbody>
                 </table>
             </div>
-
-            <a href="/" class="btn btn-outline-dark">⬅ Back</a>
         </div>
 
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
+        <div class="actions-wrap">
+            <a href="/" class="btn btn-outline-dark btn-home">
+                <span><i class="fa-solid fa-arrow-left me-2"></i>Back</span>
+            </a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.05 });
+
+        document.querySelectorAll('tbody tr').forEach((row, i) => {
+            row.style.animationDelay = (i * 0.05) + 's';
+            observer.observe(row);
+        });
+    </script>
+</body>
 </html>

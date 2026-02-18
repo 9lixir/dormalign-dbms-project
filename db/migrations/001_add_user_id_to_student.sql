@@ -43,11 +43,17 @@ ADD COLUMN IF NOT EXISTS email VARCHAR(200) UNIQUE NOT NULL;
 ALTER TABLE users
 ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'student';
 
---update the role of admin
-UPDATE users
-SET role = 'admin'
-WHERE username = 'ayushma'; 
+
 
 -- create an admin (values changed in remote device accoringly)
 INSERT INTO users (username, password, role, email) 
 VALUES ('admin_name', 'password', 'admin', 'email@gmail.com');
+
+--update the role of admin
+UPDATE users
+SET role = 'admin'
+WHERE username = 'admin_name'; 
+
+--for tracking which roommate has been assigned:
+ALTER TABLE roommate_request
+ADD COLUMN IF NOT EXISTS assigned_roommate_id INT REFERENCES student(student_id);

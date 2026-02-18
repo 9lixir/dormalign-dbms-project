@@ -61,7 +61,15 @@ def calculate_compatibility(s1,s2):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    if "user_id" not in session:
+        return render_template("index.html", user_type=None)
+
+    if is_admin():
+        user_type = "admin"
+    else:
+        user_type = "student"
+
+    return render_template("index.html", user_type=user_type)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -365,10 +373,16 @@ def view_compatibility():
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT c.score_id, s1.name AS student1, s2.name AS student2, c.compatibility_score, c.calculated_date
+        SELECT c.score_id, s1.name AS student1, s2.name AS student2, c.compatibility_score, c.calculated_date,
+            rr1.assigned_roommate_id AS s1_assigned,
+            rr2.assigned_roommate_id AS s2_assigned,
+            s1.student_id AS s1_id,
+            s2.student_id AS s2_id
         FROM compatibility_score c
         JOIN student s1 ON c.student1_id = s1.student_id
         JOIN student s2 ON c.student2_id = s2.student_id
+        LEFT JOIN roommate_request rr1 ON s1.student_id = rr1.student_id
+        LEFT JOIN roommate_request rr2 ON s2.student_id = rr2.student_id
         ORDER BY c.compatibility_score DESC
     """)
     scores = cur.fetchall()
@@ -377,6 +391,29 @@ def view_compatibility():
 
     return render_template("admin_compatibility.html", scores=scores)
 
+@app.route("/admin/assign_roommates/<int:s1_id>/<int:s2_id>", methods=["POST"])
+def assign_roommate_pair(s1_id, s2_id):
+    if not is_admin():
+        return "Access Denied", 403
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    cur.execute("""
+        UPDATE roommate_request
+        SET assigned_roommate_id = %s, request_status='Assigned'
+        WHERE student_id = %s
+        """, (s2_id, s1_id))
+    cur.execute("""
+        UPDATE roommate_request
+        SET assigned_roommate_id = %s, request_status='Assigned'
+        WHERE student_id = %s
+        """, (s1_id, s2_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect("/admin/view/compatibility")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)

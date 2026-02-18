@@ -1,45 +1,330 @@
 <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Student Dashboard</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DormAlign | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+        }
 
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+        .navbar {
+            border-bottom: 1px solid #eee;
+            animation: slideDown 0.5s ease forwards;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to   { transform: translateY(0);     opacity: 1; }
+        }
+        .navbar-brand {
+            transition: letter-spacing 0.3s ease;
+        }
+        .navbar-brand:hover { letter-spacing: 2px; }
 
-    </head>
-    <body>
-        <div class="container mt-5">
-            <h2 class="mb-4">Student Dashboard</h2>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <div class="card shadow">
-                        <div class="card-header fw-bold">Basic Information</div>
-                        <div class="card-body">
-                            <p><strong>Name:</strong> {{ student.name }}</p>
-                            <p><strong>Department:</strong> {{ student.department }}</p>
-                            <p><strong>Year:</strong> {{ student.year }}</p>
-                            <p><strong>Hostel:</strong> {{ student.hostel_name }}</p>
+        .nav-link {
+            position: relative;
+            transition: color 0.2s;
+        }
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            left: 0; bottom: 0;
+            width: 0; height: 2px;
+            background: #0d6efd;
+            transition: width 0.25s ease;
+        }
+        .nav-link:hover::after { width: 100%; }
+
+        .page-header {
+            padding: 50px 0 30px;
+            animation: fadeScaleIn 0.6s cubic-bezier(.22,1,.36,1) 0.1s both;
+        }
+        @keyframes fadeScaleIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0);    }
+        }
+
+        .page-title {
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+
+        .dash-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            opacity: 0;
+            transform: translateY(24px);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s;
+        }
+        .dash-card.visible {
+            animation: fadeUp 0.5s ease forwards;
+        }
+        .dash-card:nth-of-type(1) { animation-delay: 0s; }
+        .dash-card:nth-of-type(2) { animation-delay: 0.12s; }
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .dash-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 28px rgba(0,0,0,0.09);
+            border-color: #0d6efd;
+        }
+
+        .card-header-custom {
+            background: white;
+            border-bottom: 2px solid #edf2f7;
+            padding: 16px 24px;
+            font-weight: 800;
+            text-transform: uppercase;
+            font-size: 0.78rem;
+            letter-spacing: 1px;
+            color: #555;
+        }
+
+        .card-body-custom {
+            padding: 24px;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f3f5;
+            opacity: 0;
+            transform: translateX(-12px);
+        }
+        .info-row.visible {
+            animation: slideRight 0.38s ease forwards;
+        }
+        .info-row:nth-child(1) { animation-delay: 0.1s; }
+        .info-row:nth-child(2) { animation-delay: 0.18s; }
+        .info-row:nth-child(3) { animation-delay: 0.26s; }
+        .info-row:nth-child(4) { animation-delay: 0.34s; }
+        .info-row:last-child { border-bottom: none; }
+        @keyframes slideRight {
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .info-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #999;
+            width: 110px;
+            flex-shrink: 0;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.92rem;
+        }
+
+        .pref-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f5;
+            opacity: 0;
+            transform: translateX(-12px);
+        }
+        .pref-item.visible {
+            animation: slideRight 0.38s ease forwards;
+        }
+        .pref-item:nth-child(1) { animation-delay: 0.1s; }
+        .pref-item:nth-child(2) { animation-delay: 0.18s; }
+        .pref-item:nth-child(3) { animation-delay: 0.26s; }
+        .pref-item:nth-child(4) { animation-delay: 0.34s; }
+        .pref-item:last-child { border-bottom: none; }
+
+        .pref-icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            margin-right: 14px;
+            flex-shrink: 0;
+            transition: transform 0.2s;
+        }
+        .pref-item:hover .pref-icon { transform: scale(1.15) rotate(-5deg); }
+
+        .pref-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #999;
+            width: 100px;
+            flex-shrink: 0;
+        }
+
+        .pref-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.92rem;
+        }
+
+        .actions-wrap {
+            opacity: 0;
+            animation: fadeUp 0.5s ease 0.45s forwards;
+        }
+
+        .btn-update {
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 600;
+            animation: subtlePulse 2.5s ease-in-out infinite;
+        }
+        @keyframes subtlePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(13,110,253,0.35); }
+            50%       { box-shadow: 0 0 0 8px rgba(13,110,253,0);   }
+        }
+
+        .btn-home {
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 600;
+            position: relative;
+            overflow: hidden;
+            transition: color 0.3s;
+        }
+        .btn-home::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: #212529;
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.3s ease;
+            z-index: 0;
+        }
+        .btn-home:hover::before { transform: scaleX(1); }
+        .btn-home:hover { color: white !important; }
+        .btn-home span { position: relative; z-index: 1; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="/">DORM<span class="text-dark">ALIGN</span></a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mb-5">
+        <div class="page-header">
+            <div class="py-3 px-4 border border-dark border-2 d-inline-block">
+                <h2 class="page-title m-0">Student Dashboard</h2>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="dash-card h-100">
+                    <div class="card-header-custom">Basic Information</div>
+                    <div class="card-body-custom">
+                        <div class="info-row">
+                            <span class="info-label">Name</span>
+                            <span class="info-value">{{ student.name }}</span>
                         </div>
-                    </div>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <div class="card shadow">
-                        <div class="card-header fw-bold">Lifestyle Preferences</div>
-                        <div class="card-body">
-                            <span class="badge bg-primary">Sleep: {{ preferences.sleep_time }}</span><br><br>
-                            <span class="badge bg-success">Study: {{ preferences.study_style }}</span><br><br>
-                            <span class="badge bg-warning text-dark">Cleanliness: {{ preferences.cleanliness_level }}</span><br><br>
-                            <span class="badge bg-info text-dark">Noise: {{ preferences.noise_tolerance }}</span>
+                        <div class="info-row">
+                            <span class="info-label">Department</span>
+                            <span class="info-value">{{ student.department }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Year</span>
+                            <span class="info-value">{{ student.year }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Hostel</span>
+                            <span class="info-value">{{ student.hostel_name }}</span>
                         </div>
                     </div>
                 </div>
             </div>
-            <form action="/update_preferences" method="GET">
-                <button type="submit" class="btn btn-primary btn-sm mt-3">Update Preferences</button>
-            </form>
-            <a href="/" class="btn btn-outline-dark mt-3">⬅ Home</a>
+
+            <div class="col-md-6">
+                <div class="dash-card h-100">
+                    <div class="card-header-custom">Lifestyle Preferences</div>
+                    <div class="card-body-custom">
+                        <div class="pref-item">
+                            <div class="pref-icon" style="background:#e8f0fe; color:#0d6efd;">
+                                <i class="fa-solid fa-moon"></i>
+                            </div>
+                            <span class="pref-label">Sleep</span>
+                            <span class="pref-value">{{ preferences.sleep_time }}</span>
+                        </div>
+                        <div class="pref-item">
+                            <div class="pref-icon" style="background:#e6f4ea; color:#198754;">
+                                <i class="fa-solid fa-book-open"></i>
+                            </div>
+                            <span class="pref-label">Study</span>
+                            <span class="pref-value">{{ preferences.study_style }}</span>
+                        </div>
+                        <div class="pref-item">
+                            <div class="pref-icon" style="background:#fef9e7; color:#f59e0b;">
+                                <i class="fa-solid fa-broom"></i>
+                            </div>
+                            <span class="pref-label">Cleanliness</span>
+                            <span class="pref-value">{{ preferences.cleanliness_level }}</span>
+                        </div>
+                        <div class="pref-item">
+                            <div class="pref-icon" style="background:#e3f2fd; color:#0ea5e9;">
+                                <i class="fa-solid fa-volume-high"></i>
+                            </div>
+                            <span class="pref-label">Noise</span>
+                            <span class="pref-value">{{ preferences.noise_tolerance }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-        
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
+
+        <div class="actions-wrap mt-4 d-flex gap-3">
+            <form action="/update_preferences" method="GET">
+                <button type="submit" class="btn btn-primary btn-update">Update Preferences</button>
+            </form>
+            <a href="/" class="btn btn-outline-dark btn-home"><span><i class="fa-solid fa-arrow-left me-2"></i>Home</span></a>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.dash-card').forEach(el => observer.observe(el));
+        document.querySelectorAll('.info-row, .pref-item').forEach(el => observer.observe(el));
+    </script>
+</body>
 </html>
