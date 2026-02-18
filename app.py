@@ -12,11 +12,11 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "secret123")
 
 def get_db_connection():
     return psycopg2.connect(
-        dbname=os.getenv("DB_NAME", "dormalign"),
-        user=os.getenv("DB_USER", "postgres"),
-        password=os.getenv("DB_PASSWORD", "1207"),
-        host=os.getenv("DB_HOST", "localhost"),
-        port=os.getenv("DB_PORT", "5432")
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD"),
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT")
     )
 
 
@@ -24,6 +24,41 @@ def get_student_id_by_user_id(cur, user_id):
     cur.execute("SELECT student_id FROM student WHERE user_id = %s", (user_id,))
     row = cur.fetchone()
     return row[0] if row else None
+
+
+def is_admin():
+    if "user_id" not in session:
+        return False
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT role FROM users WHERE id = %s", (session["user_id"],))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+    return user and user[0] == "admin"
+
+#compat scores calculation
+
+def calculate_compatibility(s1,s2):
+    score = 0
+    if s1["sleep_time"] == s2["sleep_time"]:
+        score += 25
+
+    if s1["study_style"] == s2["study_style"]:
+        score += 20
+
+    if abs(int(s1["cleanliness_level"]) - int(s2["cleanliness_level"])) <= 1:
+        score += 20
+
+    if abs(int(s1["noise_tolerance"]) - int(s2["noise_tolerance"])) <= 1:
+        score += 20
+
+    if s1["guest_preference"] == s2["guest_preference"]:
+        score += 15
+
+    return score
+
+
 @app.route("/")
 def home():
     return render_template("index.html")
@@ -33,12 +68,13 @@ def register():
     if request.method == "POST":
         username = request.form["username"]
         password = generate_password_hash(request.form["password"])
+        email = request.form["email"]
 
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO users (username, password) VALUES (%s, %s)",
-            (username, password)
+            "INSERT INTO users (username, password,email) VALUES (%s, %s,%s)",
+            (username, password,email)
         )
         conn.commit()
         cur.close()
@@ -138,9 +174,9 @@ def roommate():
             """, (preferred_room_type, request_row[0]))
         else:
             cur.execute("""
-                INSERT INTO roommate_request (student_id, preferred_room_type)
-                VALUES (%s, %s)
-            """, (student_id, preferred_room_type))
+                INSERT INTO roommate_request (student_id, preferred_room_type, request_status)
+                VALUES (%s, %s, %s)
+            """, (student_id, preferred_room_type, "Pending"))
 
         conn.commit()
         cur.close()
@@ -264,6 +300,83 @@ def update_preferences():
     cur.close()
     conn.close()
     return render_template("update_preferences.html", pref=pref)
+
+@app.route("/admin/calculate_compatibility")
+def generate_compatibility():
+    if not is_admin():
+        return "Access Denied", 403
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    cur.execute("delete from compatibility_score")
+
+    cur.execute("""select s.student_id,s.gender,s.hostel_id,
+                lp.sleep_time,lp.cleanliness_level,
+                lp.noise_tolerance, lp.guest_preference,
+                lp.study_style 
+                from student s join lifestyle_preferences lp
+                on s.student_id =lp.student_id
+                join roommate_request rr on s.student_id = rr.student_id
+                where rr.preferred_room_type != 'Single'""")
+    
+    students = cur.fetchall()
+    student_list = []
+
+    for row in students:
+        student={
+            "student_id": row[0],
+            "gender": row[1],
+            "hostel_id": row[2],
+            "sleep_time": row[3],
+            "cleanliness_level": row[4],
+            "noise_tolerance": row[5],
+            "guest_preference": row[6],
+            "study_style": row[7],
+        }
+        student_list.append(student)
+    
+    for i in range(len(student_list)):
+        for j in range(i+1, len(student_list)):
+            s1 = student_list[i]
+            s2 = student_list[j]
+
+            #these are conditions that must be fulfilled before any compat scores are calculated
+            if s1["gender"] != s2["gender"]:
+                continue
+            if s1["hostel_id"] != s2["hostel_id"]:
+                continue
+
+            score = calculate_compatibility(s1,s2)
+
+            cur.execute("""Insert into compatibility_score
+                        (student1_id,student2_id,compatibility_score,calculated_date)
+                        values (%s,%s,%s, NOW())""",
+                        (s1["student_id"], s2["student_id"], score))
+    
+    conn.commit()
+    cur.close()
+    conn.close()
+    return "Scores calculated successfully"
+
+@app.route("/admin/view/compatibility")
+def view_compatibility():
+    if not is_admin():
+        return "Access Denied", 403
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT c.score_id, s1.name AS student1, s2.name AS student2, c.compatibility_score, c.calculated_date
+        FROM compatibility_score c
+        JOIN student s1 ON c.student1_id = s1.student_id
+        JOIN student s2 ON c.student2_id = s2.student_id
+        ORDER BY c.compatibility_score DESC
+    """)
+    scores = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template("admin_compatibility.html", scores=scores)
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)

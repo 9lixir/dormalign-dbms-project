@@ -34,3 +34,20 @@ BEGIN
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
     END IF;
 END $$;
+
+--email column added
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS email VARCHAR(200) UNIQUE NOT NULL;
+
+-- added role column to users, for roles of admin and student, default will be student
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'student';
+
+--update the role of admin
+UPDATE users
+SET role = 'admin'
+WHERE username = 'ayushma'; 
+
+-- create an admin (values changed in remote device accoringly)
+INSERT INTO users (username, password, role, email) 
+VALUES ('admin_name', 'password', 'admin', 'email@gmail.com');
