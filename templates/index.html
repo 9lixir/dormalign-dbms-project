@@ -361,9 +361,56 @@
             background: #f8fbff;
             color: #36527f;
         }
+
+        .popup-toast {
+            position: fixed;
+            top: 78px;
+            right: 18px;
+            z-index: 1080;
+            min-width: 290px;
+            max-width: 360px;
+            border-radius: 12px;
+            border: 1px solid #b9e8cb;
+            background: #effcf4;
+            color: #0c7f47;
+            box-shadow: 0 14px 28px rgba(12, 127, 71, 0.2);
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            animation: fadeUp 0.3s ease forwards;
+        }
+
+        .popup-toast .msg {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 0.86rem;
+        }
+
+        .popup-toast button {
+            border: 0;
+            background: transparent;
+            color: #0c7f47;
+            font-weight: 800;
+            font-size: 0.95rem;
+            line-height: 1;
+        }
     </style>
 </head>
 <body>
+
+    {% if user_type == 'admin' and algo_msg == 'scores_calculated' %}
+    <div id="algo-toast" class="popup-toast" role="status" aria-live="polite">
+        <div class="msg">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>Compatibility scores calculated successfully.</span>
+        </div>
+        <button type="button" onclick="document.getElementById('algo-toast').remove()" aria-label="Close">&times;</button>
+    </div>
+    {% endif %}
 
     <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
         <div class="container">
@@ -448,7 +495,7 @@
                         </div>
                         <h5>Compatibility Scores</h5>
                         <p>View all computed compatibility pairings between students.</p>
-                        <a href="/admin/view/compatibility" class="btn btn-primary btn-custom w-100">View Scores</a>
+                        <a href="/admin/view/compatibility" class="btn btn-outline-dark btn-custom w-100"><span>View Scores</span></a>
                     </div>
                 </div>
                 <div class="col-md-4">
@@ -601,6 +648,15 @@
             el.style.animationDelay = (i * 0.1) + 's';
             observer.observe(el);
         });
+
+        const algoToast = document.getElementById('algo-toast');
+        if (algoToast) {
+            setTimeout(() => {
+                if (algoToast && algoToast.parentNode) {
+                    algoToast.remove();
+                }
+            }, 3500);
+        }
     </script>
 </body>
 </html>

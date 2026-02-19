@@ -222,6 +222,8 @@
                 <div class="alert alert-danger">You already have a room assigned.</div>
                 {% elif request_error == "single_pref" %}
                 <div class="alert alert-danger">Your current preference is Single; update preferences to send requests.</div>
+                {% elif request_error == "profile_unavailable" %}
+                <div class="alert alert-danger">That matched profile is not available right now.</div>
                 {% endif %}
                 {% if block_reason %}
                 <div class="alert alert-warning">{{ block_reason }}</div>
@@ -251,7 +253,7 @@
                                 </td>
                                 <td>
                                     <div class="action-cell">
-                                    <a href="/submissions" class="btn btn-sm btn-profile">View Profile</a>
+                                    <a href="/student/match_profile/{{ row.student_id }}" class="btn btn-sm btn-profile">View Profile</a>
                                     {% if row.request_sent %}
                                     <button class="btn btn-sm btn-secondary" disabled>Request Sent</button>
                                     {% elif block_reason %}

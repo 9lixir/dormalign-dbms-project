@@ -159,15 +159,17 @@ def calculate_compatibility(s1,s2):
 
 @app.route("/")
 def home():
+    algo_msg = request.args.get("algo_msg")
+
     if "user_id" not in session:
-        return render_template("index.html", user_type=None)
+        return render_template("index.html", user_type=None, algo_msg=algo_msg)
 
     if is_admin():
         user_type = "admin"
     else:
         user_type = "student"
 
-    return render_template("index.html", user_type=user_type)
+    return render_template("index.html", user_type=user_type, algo_msg=algo_msg)
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -566,6 +568,121 @@ def student_send_request(target_student_id):
     return redirect("/student/compatibility?ok=1")
 
 
+@app.route("/student/match_profile/<int:target_student_id>")
+def student_match_profile(target_student_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    student_id = get_student_id_by_user_id(cur, session["user_id"])
+    if not student_id:
+        cur.close()
+        conn.close()
+        return redirect("/roommate")
+
+    # Allow viewing only profiles that are actually matched in compatibility results.
+    cur.execute(
+        """
+        SELECT compatibility_score
+        FROM compatibility_score
+        WHERE (student1_id = %s AND student2_id = %s)
+           OR (student1_id = %s AND student2_id = %s)
+        ORDER BY score_id DESC
+        LIMIT 1
+        """,
+        (student_id, target_student_id, target_student_id, student_id)
+    )
+    score_row = cur.fetchone()
+    if not score_row:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=profile_unavailable")
+
+    cur.execute(
+        """
+        SELECT
+            s.student_id,
+            s.name,
+            s.gender,
+            s.department,
+            s.year,
+            h.hostel_name,
+            lp.sleep_time,
+            lp.cleanliness_level,
+            lp.noise_tolerance,
+            lp.guest_preference,
+            lp.study_style,
+            COALESCE(rr.preferred_room_type, '')
+        FROM student s
+        JOIN hostel h ON h.hostel_id = s.hostel_id
+        LEFT JOIN lifestyle_preferences lp ON lp.student_id = s.student_id
+        LEFT JOIN roommate_request rr ON rr.student_id = s.student_id
+        WHERE s.student_id = %s
+        """,
+        (target_student_id,)
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=profile_unavailable")
+
+    cur.execute(
+        """
+        SELECT assigned_roommate_id, COALESCE(request_status, ''), COALESCE(preferred_room_type, '')
+        FROM roommate_request
+        WHERE student_id = %s
+        ORDER BY request_id
+        LIMIT 1
+        """,
+        (student_id,)
+    )
+    my_request = cur.fetchone()
+    current_target_id = my_request[0] if my_request else None
+    current_status = (my_request[1] if my_request else "").lower()
+    preferred_room_type = (my_request[2] if my_request else "").lower()
+
+    cur.execute(
+        "SELECT EXISTS(SELECT 1 FROM room_assignment WHERE student_id = %s)",
+        (student_id,)
+    )
+    has_room_assignment = bool(cur.fetchone()[0])
+
+    cur.close()
+    conn.close()
+
+    block_reason = None
+    if has_room_assignment:
+        block_reason = "You already have a room assigned."
+    elif preferred_room_type == "single":
+        block_reason = "Single-room preference is active; roommate requests are disabled."
+
+    profile = {
+        "student_id": row[0],
+        "name": row[1],
+        "gender": row[2],
+        "department": row[3],
+        "year": row[4],
+        "hostel_name": row[5],
+        "sleep_time": row[6],
+        "cleanliness_level": row[7],
+        "noise_tolerance": row[8],
+        "guest_preference": row[9],
+        "study_style": row[10],
+        "preferred_room_type": row[11],
+        "score": score_row[0],
+        "request_sent": current_target_id == target_student_id and current_status == "pending",
+    }
+
+    return render_template(
+        "student_match_profile.html",
+        profile=profile,
+        block_reason=block_reason,
+    )
+
+
 @app.route("/student/assignment")
 def student_assignment():
     if "user_id" not in session:
@@ -801,6 +918,22 @@ def is_student_assigned(cur, student_id):
         )
         """,
         (student_id, student_id)
+    )
+    row = cur.fetchone()
+    return bool(row and row[0])
+
+
+def student_prefers_single(cur, student_id):
+    cur.execute(
+        """
+        SELECT EXISTS (
+            SELECT 1
+            FROM roommate_request
+            WHERE student_id = %s
+              AND COALESCE(preferred_room_type, '') ILIKE 'single'
+        )
+        """,
+        (student_id,)
     )
     row = cur.fetchone()
     return bool(row and row[0])
@@ -1417,6 +1550,18 @@ def auto_assign_top_matches():
         JOIN student s1 ON s1.student_id = c.student1_id
         JOIN student s2 ON s2.student_id = c.student2_id
         WHERE s1.hostel_id = s2.hostel_id
+          AND NOT EXISTS (
+              SELECT 1
+              FROM roommate_request rr1
+              WHERE rr1.student_id = s1.student_id
+                AND COALESCE(rr1.preferred_room_type, '') ILIKE 'single'
+          )
+          AND NOT EXISTS (
+              SELECT 1
+              FROM roommate_request rr2
+              WHERE rr2.student_id = s2.student_id
+                AND COALESCE(rr2.preferred_room_type, '') ILIKE 'single'
+          )
         ORDER BY c.compatibility_score DESC, c.score_id ASC
     """)
     pairs = cur.fetchall()
@@ -1452,8 +1597,7 @@ def auto_assign_top_matches():
         SELECT rr.student_id, s.hostel_id
         FROM roommate_request rr
         JOIN student s ON s.student_id = rr.student_id
-        WHERE COALESCE(rr.request_status, '') ILIKE 'pending'
-          AND COALESCE(rr.preferred_room_type, '') ILIKE 'single'
+        WHERE COALESCE(rr.preferred_room_type, '') ILIKE 'single'
         ORDER BY rr.request_id ASC
         """
     )
@@ -1568,7 +1712,7 @@ def generate_compatibility():
         FROM student s
         JOIN lifestyle_preferences lp ON s.student_id = lp.student_id
         JOIN roommate_request rr ON s.student_id = rr.student_id
-        WHERE rr.preferred_room_type != 'Single'
+        WHERE COALESCE(rr.preferred_room_type, '') NOT ILIKE 'single'
     """)
     students = cur.fetchall()
 
@@ -1612,7 +1756,7 @@ def generate_compatibility():
     conn.commit()
     cur.close()
     conn.close()
-    return "Scores calculated successfully"
+    return redirect("/?algo_msg=scores_calculated")
 
 
 @app.route("/admin/view/compatibility")
@@ -1663,6 +1807,11 @@ def assign_roommate_pair(s1_id, s2_id):
 
     conn = get_db_connection()
     cur = conn.cursor()
+
+    if student_prefers_single(cur, s1_id) or student_prefers_single(cur, s2_id):
+        cur.close()
+        conn.close()
+        return "Single-room preference active for one of the students.", 400
 
     if is_student_assigned(cur, s1_id) or is_student_assigned(cur, s2_id):
         cur.close()
