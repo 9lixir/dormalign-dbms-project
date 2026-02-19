@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DormAlign | Room Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --page-bg: #edf3ff;
+            --line: #c9d9ff;
+            --blue: #1d4ed8;
+            --purple: #7c3aed;
+            --light-blue: #0ea5e9;
+            --sidebar: #0e1f4a;
+            --sidebar-2: #142d67;
+            --ink: #12244c;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--page-bg);
+        }
+
+        .admin-shell { min-height: 100vh; display: flex; }
+        .admin-sidebar {
+            width: 268px;
+            background: linear-gradient(180deg, var(--sidebar), var(--sidebar-2));
+            padding: 20px 14px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            border-right: 1px solid rgba(164, 186, 255, 0.22);
+        }
+
+        .brand-pill {
+            border-radius: 14px;
+            background: linear-gradient(120deg, #4f46e5, #9333ea);
+            color: #fff;
+            font-weight: 800;
+            text-align: center;
+            padding: 14px 12px;
+            margin-bottom: 18px;
+        }
+
+        .side-nav { display: grid; gap: 8px; }
+        .side-link {
+            color: #e5edff;
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 12px;
+            padding: 11px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
+        }
+
+        .side-link:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .side-link.active { background: linear-gradient(120deg, #4f46e5, #9333ea); color: #fff; }
+
+        .admin-main { flex: 1; padding: 24px; }
+
+        .hero {
+            border: 1px solid #d5e2ff;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 18px 35px rgba(18, 42, 120, 0.14);
+            margin-bottom: 16px;
+        }
+
+        .hero-banner {
+            background: linear-gradient(115deg, var(--blue), var(--purple), var(--light-blue));
+            color: #f8fbff;
+            padding: 18px 20px;
+        }
+
+        .hero-banner h1 { margin: 0; font-size: 1.5rem; font-weight: 800; }
+
+        .msg {
+            border-radius: 12px;
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            font-weight: 700;
+            background: #fff;
+        }
+
+        .msg-ok { background: #effcf4; border-color: #b9e8cb; color: #0c7f47; }
+        .msg-error { background: #fff0f2; border-color: #f0b4bb; color: #b3272f; }
+
+        .panel {
+            border: 1px solid #d5e2ff;
+            border-radius: 16px;
+            background: #fff;
+            overflow: hidden;
+            box-shadow: 0 10px 24px rgba(19, 47, 130, 0.1);
+            margin-bottom: 16px;
+        }
+
+        .panel-head {
+            background: #f8fbff;
+            border-bottom: 1px solid #dce7ff;
+            padding: 12px 14px;
+            font-weight: 800;
+        }
+
+        .section-body { padding: 12px; }
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 920px;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e4edff;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        th {
+            color: #3f5687;
+            text-transform: uppercase;
+            letter-spacing: 0.55px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            background: #fbfdff;
+            white-space: nowrap;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        .compact-input {
+            border-radius: 10px;
+            border: 1px solid #cbd9ff;
+            padding: 7px 10px;
+            font-size: 0.88rem;
+        }
+
+        .btn-plain {
+            border-radius: 10px;
+            border: 1px solid #c8d8ff;
+            background: #f4f8ff;
+            color: #1f3d79;
+            font-weight: 700;
+            padding: 7px 11px;
+            font-size: 0.82rem;
+        }
+
+        .btn-danger-soft {
+            border-color: #f0b9c0;
+            background: #fff0f2;
+            color: #b42335;
+        }
+
+        .btn-good {
+            border: none;
+            background: linear-gradient(120deg, var(--blue), var(--light-blue));
+            color: #fff;
+        }
+
+        .badge-soft {
+            font-size: 0.74rem;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-weight: 700;
+        }
+
+        .badge-full { background: #fee2e2; color: #991b1b; }
+        .badge-empty { background: #e6f0ff; color: #1e3a8a; }
+        .badge-available { background: #dcfce7; color: #166534; }
+        .badge-other { background: #fff5d6; color: #8a5300; }
+
+        @media (max-width: 992px) {
+            .admin-shell { display: block; }
+            .admin-sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-right: 0;
+                border-bottom: 1px solid rgba(164, 186, 255, 0.22);
+            }
+            .side-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .admin-main { padding: 16px; }
+        }
+
+        @media (max-width: 640px) {
+            .side-nav { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <div class="brand-pill">Admin Portal</div>
+        <nav class="side-nav">
+            <a class="side-link" href="/admin/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+            <a class="side-link" href="/"><i class="fa-solid fa-house"></i>Return Home</a>
+            <a class="side-link" href="/admin/profile"><i class="fa-solid fa-user-shield"></i>Admin Profile</a>
+            <a class="side-link" href="/admin/view/compatibility"><i class="fa-solid fa-heart-pulse"></i>Compatibility</a>
+            <a class="side-link" href="/submissions"><i class="fa-solid fa-users"></i>All Students</a>
+            <a class="side-link" href="/admin/pending-requests"><i class="fa-solid fa-hourglass-half"></i>Pending Requests</a>
+            <a class="side-link active" href="/admin/rooms"><i class="fa-solid fa-bed"></i>Room Management</a>
+            <a class="side-link" href="/logout"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        </nav>
+    </aside>
+
+    <main class="admin-main">
+        <section class="hero">
+            <div class="hero-banner">
+                <h1>Room Management</h1>
+            </div>
+        </section>
+
+        <div class="mb-3">
+            <a class="btn-plain" href="/admin/dashboard"><i class="fa-solid fa-arrow-left me-2"></i>Return to Dashboard</a>
+        </div>
+
+        {% if room_msg == "created" %}
+        <div class="msg msg-ok">Room created successfully.</div>
+        {% elif room_msg == "updated" %}
+        <div class="msg msg-ok">Room updated successfully.</div>
+        {% elif room_msg == "deleted" %}
+        <div class="msg msg-ok">Room deleted successfully.</div>
+        {% endif %}
+        {% if room_err == "missing_room_number" %}
+        <div class="msg msg-error">Room number is required.</div>
+        {% elif room_err == "invalid_hostel" %}
+        <div class="msg msg-error">Please select a valid hostel.</div>
+        {% elif room_err == "invalid_capacity" %}
+        <div class="msg msg-error">Capacity must be a positive number.</div>
+        {% elif room_err == "invalid_occupancy" %}
+        <div class="msg msg-error">Occupied beds must be between 0 and total beds.</div>
+        {% elif room_err == "duplicate_room" %}
+        <div class="msg msg-error">Room number already exists in the selected hostel.</div>
+        {% elif room_err == "room_in_use" %}
+        <div class="msg msg-error">Room cannot be deleted while assignments exist.</div>
+        {% endif %}
+
+        <section class="panel">
+            <div class="panel-head">Add Room</div>
+            <div class="section-body">
+                <form action="/admin/rooms/create" method="POST" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Hostel</label>
+                        <select name="hostel_id" class="form-select compact-input" required>
+                            <option value="">Select hostel</option>
+                            {% for h in hostels %}
+                            <option value="{{ h[0] }}">{{ h[1] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Room Number</label>
+                        <input type="text" name="room_number" class="form-control compact-input" placeholder="e.g. A-101" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">Beds</label>
+                        <input type="number" min="1" name="capacity" class="form-control compact-input" value="2" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small mb-1">Occupied</label>
+                        <input type="number" min="0" name="current_occupancy" class="form-control compact-input" value="0" required>
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn-plain btn-good w-100" type="submit">Add Room</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">Room Capacity</div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Room ID</th>
+                            <th>Hostel</th>
+                            <th>Room Number</th>
+                            <th>Status</th>
+                            <th>Beds</th>
+                            <th>Occupied</th>
+                            <th>Available</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for room in room_rows %}
+                        <tr>
+                            <td>{{ room[0] }}</td>
+                            <td>{{ room[2] }}</td>
+                            <td>{{ room[1] }}</td>
+                            <td>
+                                {% if room[6] == "Full" %}
+                                <span class="badge-soft badge-full">Full</span>
+                                {% elif room[6] == "Empty" %}
+                                <span class="badge-soft badge-empty">Empty</span>
+                                {% elif room[6] == "Available" %}
+                                <span class="badge-soft badge-available">Available</span>
+                                {% else %}
+                                <span class="badge-soft badge-other">{{ room[6] }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ room[3] }}</td>
+                            <td>{{ room[4] }}</td>
+                            <td>{{ room[5] }}</td>
+                            <td>
+                                <form action="/admin/rooms/{{ room[0] }}/update" method="POST" class="d-flex flex-wrap gap-1 mb-1">
+                                    <select name="hostel_id" class="compact-input" style="width: 136px;" required>
+                                        {% for h in hostels %}
+                                        <option value="{{ h[0] }}" {% if h[0] == room[7] %}selected{% endif %}>{{ h[1] }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="text" name="room_number" class="compact-input" style="width: 100px;" value="{{ room[1] }}" required>
+                                    <input type="number" min="1" name="capacity" class="compact-input" style="width: 70px;" value="{{ room[3] }}" required>
+                                    <input type="number" min="0" name="current_occupancy" class="compact-input" style="width: 76px;" value="{{ room[4] }}" required>
+                                    <button class="btn-plain" type="submit">Save</button>
+                                </form>
+                                <form action="/admin/rooms/{{ room[0] }}/delete" method="POST">
+                                    <button class="btn-plain btn-danger-soft" type="submit">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not room_rows %}
+                        <tr><td colspan="8" class="text-center text-muted py-3">No rooms found.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">Room Occupancy Summary (Hostel-wise)</div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Hostel</th>
+                            <th>Total Rooms</th>
+                            <th>Total Capacity</th>
+                            <th>Occupied</th>
+                            <th>Available</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in occupancy_summary %}
+                        <tr>
+                            <td>{{ row[0] }}</td>
+                            <td>{{ row[1] }}</td>
+                            <td>{{ row[2] }}</td>
+                            <td>{{ row[3] }}</td>
+                            <td>{{ row[4] }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if not occupancy_summary %}
+                        <tr><td colspan="5" class="text-center text-muted py-3">No hostels/rooms found.</td></tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

@@ -78,8 +78,62 @@ def admin_room_redirect(message=None, error=None):
         query_parts.append(f"room_err={error}")
     query_string = "&".join(query_parts)
     if query_string:
-        return redirect(f"/admin/dashboard?{query_string}#room-management")
-    return redirect("/admin/dashboard#room-management")
+        return redirect(f"/admin/rooms?{query_string}")
+    return redirect("/admin/rooms")
+
+
+def get_admin_summary_stats(cur):
+    cur.execute("SELECT COUNT(*) FROM student")
+    total_students = cur.fetchone()[0]
+
+    cur.execute("SELECT COUNT(DISTINCT student_id) FROM room_assignment")
+    assigned_students = cur.fetchone()[0]
+    unassigned_students = max(total_students - assigned_students, 0)
+
+    cur.execute("SELECT COUNT(*) FROM room")
+    total_rooms = cur.fetchone()[0]
+
+    cur.execute(
+        """
+        SELECT
+            COALESCE(COUNT(*) FILTER (WHERE COALESCE(current_occupancy, 0) > 0), 0),
+            COALESCE(COUNT(*) FILTER (WHERE COALESCE(current_occupancy, 0) < COALESCE(capacity, 0)), 0)
+        FROM room
+        """
+    )
+    occupied_rooms, available_rooms = cur.fetchone()
+
+    cur.execute("SELECT COUNT(*) FROM roommate_request WHERE COALESCE(request_status, '') ILIKE 'pending'")
+    pending_requests = cur.fetchone()[0]
+
+    cur.execute(
+        """
+        SELECT COALESCE(SUM(capacity), 0), COALESCE(SUM(COALESCE(current_occupancy, 0)), 0)
+        FROM room
+        """
+    )
+    total_capacity, occupied_capacity = cur.fetchone()
+    capacity_left = max(total_capacity - occupied_capacity, 0)
+    occupancy_percent = round((occupied_capacity / total_capacity) * 100, 1) if total_capacity else 0
+
+    system_status = (
+        "System Status: Stable"
+        if unassigned_students == 0 and pending_requests == 0
+        else f"Warning: {unassigned_students} students unassigned"
+    )
+
+    stats = {
+        "total_students": total_students,
+        "assigned_students": assigned_students,
+        "unassigned_students": unassigned_students,
+        "total_rooms": total_rooms,
+        "occupied_rooms": occupied_rooms,
+        "available_rooms": available_rooms,
+        "pending_requests": pending_requests,
+        "capacity_left": capacity_left,
+        "occupancy_percent": occupancy_percent,
+    }
+    return stats, system_status
 
 #compat scores calculation
 
@@ -258,6 +312,8 @@ def roommate():
 def submissions():
     if "user_id" not in session:
         return redirect("/login")
+    if not is_admin():
+        return "Access Denied", 403
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -1175,11 +1231,6 @@ def admin_dashboard():
     if not is_admin():
         return "Access Denied", 403
     
-    filter_mode = request.args.get("filter", "all").lower()
-    if filter_mode not in ("all", "assigned", "unassigned"):
-        filter_mode = "all"
-
-
     conn = get_db_connection()
     cur = conn.cursor()
 
@@ -1190,100 +1241,46 @@ def admin_dashboard():
         session.clear()
         return redirect("/login")
 
-    # Summary statistics
-    cur.execute("SELECT COUNT(*) FROM student")
-    total_students = cur.fetchone()[0]
+    stats, system_status = get_admin_summary_stats(cur)
 
-    cur.execute("SELECT COUNT(DISTINCT student_id) FROM room_assignment")
-    assigned_students = cur.fetchone()[0]
+    cur.close()
+    conn.close()
 
-    unassigned_students = max(total_students - assigned_students, 0)
+    auto_assigned = request.args.get("auto_assigned")
+    auto_assigned = int(auto_assigned) if auto_assigned and auto_assigned.isdigit() else None
 
-    cur.execute("SELECT COUNT(*) FROM room")
-    total_rooms = cur.fetchone()[0]
-
-    cur.execute(
-        """
-        SELECT
-            COALESCE(COUNT(*) FILTER (WHERE COALESCE(current_occupancy, 0) > 0), 0),
-            COALESCE(COUNT(*) FILTER (WHERE COALESCE(current_occupancy, 0) < COALESCE(capacity, 0)), 0)
-        FROM room
-        """
+    pair_assigned = request.args.get("auto_pairs") or request.args.get("pairs")
+    pair_assigned = int(pair_assigned) if pair_assigned and pair_assigned.isdigit() else None
+    single_assigned = request.args.get("auto_single")
+    single_assigned = int(single_assigned) if single_assigned and single_assigned.isdigit() else None
+    return render_template(
+        "admin_dashboard.html",
+        admin=admin,
+        stats=stats,
+        system_status=system_status,
+        auto_assigned=auto_assigned,
+        pair_assigned=pair_assigned,
+        single_assigned=single_assigned,
     )
-    occupied_rooms, available_rooms = cur.fetchone()
 
-    cur.execute("SELECT COUNT(*) FROM roommate_request WHERE COALESCE(request_status, '') ILIKE 'pending'")
-    pending_requests = cur.fetchone()[0]
 
-    cur.execute(
-        """
-        SELECT COALESCE(SUM(capacity), 0), COALESCE(SUM(COALESCE(current_occupancy, 0)), 0)
-        FROM room
-        """
-    )
-    total_capacity, occupied_capacity = cur.fetchone()
-    capacity_left = max(total_capacity - occupied_capacity, 0)
-    occupancy_percent = round((occupied_capacity / total_capacity) * 100, 1) if total_capacity else 0
+@app.route("/admin/pending-requests")
+def admin_pending_requests():
+    if "user_id" not in session:
+        return redirect("/login")
+    if not is_admin():
+        return "Access Denied", 403
 
-    assignment_where = ""
-    if filter_mode == "unassigned":
-        assignment_where = """
-            WHERE rr.assigned_roommate_id IS NULL
-              AND ra.assignment_id IS NULL
-              AND COALESCE(rr.request_status, '') NOT ILIKE 'assigned'
-        """
-    elif filter_mode == "assigned":
-        assignment_where = """
-            WHERE rr.assigned_roommate_id IS NOT NULL
-               OR ra.assignment_id IS NOT NULL
-               OR COALESCE(rr.request_status, '') ILIKE 'assigned'
-        """
+    conn = get_db_connection()
+    cur = conn.cursor()
+    admin = get_user_row(cur, session["user_id"])
+    if not admin:
+        cur.close()
+        conn.close()
+        session.clear()
+        return redirect("/login")
 
-    # Assignment overview
-    cur.execute(f"""
-        SELECT
-            s.student_id,
-            s.name,
-            mate.name,
-            r.room_number,
-            MAX(cs.compatibility_score),
-            COALESCE(rr.request_status, 'No Request'),
-            rr.assigned_roommate_id,
-            COALESCE(rr.preferred_room_type, '-'),
-            ra.assignment_id
-        FROM student s
-        LEFT JOIN roommate_request rr ON rr.student_id = s.student_id
-        LEFT JOIN student mate ON mate.student_id = rr.assigned_roommate_id
-        LEFT JOIN room_assignment ra ON ra.student_id = s.student_id
-        LEFT JOIN room r ON r.room_id = ra.room_id
-        LEFT JOIN compatibility_score cs
-            ON (
-                (cs.student1_id = s.student_id AND cs.student2_id = rr.assigned_roommate_id)
-                OR
-                (cs.student2_id = s.student_id AND cs.student1_id = rr.assigned_roommate_id)
-            )
-        {assignment_where}
-        GROUP BY s.student_id, s.name, mate.name, r.room_number, rr.request_status, rr.assigned_roommate_id, rr.preferred_room_type, ra.assignment_id
-        ORDER BY s.name ASC
-    """)
-    rows = cur.fetchall()
-
-    assignments = []
-    for row in rows:
-        roommate_name = row[2] if row[2] else "Not Assigned"
-        if not row[2] and row[3] and str(row[7]).lower() == "single":
-            roommate_name = "Single Room"
-        has_assignment = (row[6] is not None) or (row[8] is not None) or (str(row[5]).lower() == "assigned")
-        assignments.append({
-            "student_id": row[0],
-            "student_name": row[1],
-            "roommate_name": roommate_name,
-            "room_number": row[3] if row[3] else "Not Assigned",
-            "compatibility_score": row[4] if row[4] is not None else "-",
-            "status": row[5],
-            "has_assignment": has_assignment
-        })
-
+    stats, system_status = get_admin_summary_stats(cur)
     cur.execute(
         """
         SELECT
@@ -1301,11 +1298,44 @@ def admin_dashboard():
         JOIN student s ON s.student_id = rr.student_id
         WHERE COALESCE(rr.request_status, '') ILIKE 'pending'
         ORDER BY rr.request_id DESC
-        LIMIT 20
+        LIMIT 50
         """
     )
     pending_rows = cur.fetchall()
 
+    cur.close()
+    conn.close()
+
+    single_msg = request.args.get("single_msg")
+    single_err = request.args.get("single_err")
+    return render_template(
+        "admin_pending_requests.html",
+        admin=admin,
+        stats=stats,
+        system_status=system_status,
+        pending_rows=pending_rows,
+        single_msg=single_msg,
+        single_err=single_err,
+    )
+
+
+@app.route("/admin/rooms")
+def admin_rooms():
+    if "user_id" not in session:
+        return redirect("/login")
+    if not is_admin():
+        return "Access Denied", 403
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    admin = get_user_row(cur, session["user_id"])
+    if not admin:
+        cur.close()
+        conn.close()
+        session.clear()
+        return redirect("/login")
+
+    stats, system_status = get_admin_summary_stats(cur)
     cur.execute(
         """
         SELECT
@@ -1338,7 +1368,8 @@ def admin_dashboard():
     )
     hostels = cur.fetchall()
 
-    cur.execute("""
+    cur.execute(
+        """
         SELECT h.hostel_name,
                COUNT(r.room_id) AS room_count,
                COALESCE(SUM(r.capacity), 0) AS total_capacity,
@@ -1348,56 +1379,25 @@ def admin_dashboard():
         LEFT JOIN room r ON r.hostel_id = h.hostel_id
         GROUP BY h.hostel_name
         ORDER BY h.hostel_name
-    """)
+        """
+    )
     occupancy_summary = cur.fetchall()
 
     cur.close()
     conn.close()
 
-    system_status = "System Status: Stable" if unassigned_students == 0 and pending_requests == 0 else f"Warning: {unassigned_students} students unassigned"
-
-    auto_assigned = request.args.get("auto_assigned")
-    auto_assigned = int(auto_assigned) if auto_assigned and auto_assigned.isdigit() else None
-
-    pair_assigned = request.args.get("auto_pairs") or request.args.get("pairs")
-    pair_assigned = int(pair_assigned) if pair_assigned and pair_assigned.isdigit() else None
-    single_assigned = request.args.get("auto_single")
-    single_assigned = int(single_assigned) if single_assigned and single_assigned.isdigit() else None
-    single_msg = request.args.get("single_msg")
-    single_err = request.args.get("single_err")
     room_msg = request.args.get("room_msg")
     room_err = request.args.get("room_err")
-
-    stats = {
-        "total_students": total_students,
-        "assigned_students": assigned_students,
-        "unassigned_students": unassigned_students,
-        "total_rooms": total_rooms,
-        "occupied_rooms": occupied_rooms,
-        "available_rooms": available_rooms,
-        "pending_requests": pending_requests,
-        "capacity_left": capacity_left,
-        "occupancy_percent": occupancy_percent,
-    }
-
     return render_template(
-        "admin_dashboard.html",
+        "admin_rooms.html",
         admin=admin,
         stats=stats,
-        assignments=assignments,
-        pending_rows=pending_rows,
+        system_status=system_status,
         room_rows=room_rows,
         hostels=hostels,
         occupancy_summary=occupancy_summary,
-        system_status=system_status,
-        auto_assigned=auto_assigned,
-        pair_assigned=pair_assigned,
-        single_assigned=single_assigned,
-        single_msg=single_msg,
-        single_err=single_err,
         room_msg=room_msg,
         room_err=room_err,
-        current_filter=filter_mode,
     )
 
 
@@ -1492,21 +1492,21 @@ def assign_single_student(student_id):
     cur = conn.cursor()
     try:
         if is_student_assigned(cur, student_id):
-            return redirect("/admin/dashboard?single_err=already_assigned#pending-requests")
+            return redirect("/admin/pending-requests?single_err=already_assigned")
 
         cur.execute("SELECT hostel_id FROM student WHERE student_id = %s", (student_id,))
         row = cur.fetchone()
         if not row:
-            return redirect("/admin/dashboard?single_err=student_missing#pending-requests")
+            return redirect("/admin/pending-requests?single_err=student_missing")
 
         room_id = get_available_single_room_id(cur, row[0])
         if not room_id:
-            return redirect("/admin/dashboard?single_err=no_single_room#pending-requests")
+            return redirect("/admin/pending-requests?single_err=no_single_room")
 
         upsert_room_assignment(cur, student_id, room_id)
         set_single_assignment(cur, student_id, "Assigned")
         conn.commit()
-        return redirect("/admin/dashboard?single_msg=assigned#pending-requests")
+        return redirect("/admin/pending-requests?single_msg=assigned")
     finally:
         cur.close()
         conn.close()

@@ -4,276 +4,293 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DormAlign | Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --page-bg: #edf3ff;
+            --panel-bg: #ffffff;
+            --ink: #12244c;
+            --muted: #5d6d93;
+            --line: #c9d9ff;
+            --blue: #1d4ed8;
+            --purple: #7c3aed;
+            --light-blue: #0ea5e9;
+            --sidebar: #0e1f4a;
+            --sidebar-2: #142d67;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--page-bg);
+        }
+
+        .admin-shell { min-height: 100vh; display: flex; }
+
+        .admin-sidebar {
+            width: 268px;
+            background: linear-gradient(180deg, var(--sidebar), var(--sidebar-2));
+            color: #e7eeff;
+            padding: 20px 14px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            border-right: 1px solid rgba(164, 186, 255, 0.22);
+        }
+
+        .brand-pill {
+            border-radius: 14px;
+            background: linear-gradient(120deg, #4f46e5, #9333ea);
+            color: #fff;
+            font-weight: 800;
+            text-align: center;
+            padding: 14px 12px;
+            margin-bottom: 18px;
+        }
+
+        .side-nav { display: grid; gap: 8px; }
+
+        .side-link {
+            color: #e5edff;
+            text-decoration: none;
+            font-weight: 700;
+            border-radius: 12px;
+            padding: 11px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
+        }
+
+        .side-link:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+
+        .side-link.active {
+            background: linear-gradient(120deg, #4f46e5, #9333ea);
+            color: #fff;
+        }
+
+        .admin-main { flex: 1; padding: 24px; }
+
+        .hero-card {
+            border: 1px solid #d5e2ff;
+            border-radius: 20px;
+            overflow: hidden;
+            background: var(--panel-bg);
+            box-shadow: 0 18px 35px rgba(18, 42, 120, 0.14);
+            margin-bottom: 16px;
+        }
+
+        .hero-banner {
+            background: linear-gradient(115deg, var(--blue), var(--purple), var(--light-blue));
+            color: #f8fbff;
+            padding: 20px 22px;
+        }
+
+        .hero-banner h1 {
+            font-size: 1.75rem;
+            margin: 0;
+            font-weight: 800;
+        }
+
+        .hero-banner p {
+            margin: 8px 0 0;
+            font-weight: 600;
+            color: #dfe9ff;
+        }
+
+        .info-strip {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            padding: 14px;
+            background: #f6f9ff;
+        }
+
+        .info-item {
+            border: 1px solid var(--line);
+            background: #fff;
+            border-radius: 14px;
+            padding: 12px 14px;
+        }
+
+        .info-item small {
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .info-item strong { font-size: 1rem; }
+
+        .msg-card {
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: #fff;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .msg-info { color: #275cae; border-color: #b8ceff; background: #edf4ff; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .stat-card {
+            border: 1px solid var(--line);
+            background: var(--panel-bg);
+            border-radius: 14px;
+            padding: 14px;
+            box-shadow: 0 8px 20px rgba(19, 47, 130, 0.09);
+        }
+
+        .stat-card small {
+            display: block;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-card strong {
+            font-size: 1.6rem;
+            line-height: 1;
+        }
+
+        .admin-actions {
+            border: 1px solid #d5e2ff;
+            border-radius: 16px;
+            background: #fff;
+            padding: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            box-shadow: 0 8px 20px rgba(19, 47, 130, 0.08);
+        }
+
+        .chip-btn {
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #f1f6ff;
+            color: #1a3c79;
+            font-weight: 700;
+            padding: 8px 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chip-btn:hover { color: #0f2c62; background: #e6efff; }
+
+        .chip-btn.primary {
+            border: none;
+            color: #fff;
+            background: linear-gradient(120deg, var(--blue), var(--purple));
+        }
+
+        @media (max-width: 1200px) {
+            .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 992px) {
+            .admin-shell { display: block; }
+            .admin-sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-right: 0;
+                border-bottom: 1px solid rgba(164, 186, 255, 0.22);
+            }
+            .side-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .admin-main { padding: 16px; }
+            .info-strip { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 640px) {
+            .stats-grid { grid-template-columns: 1fr; }
+            .side-nav { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
-<body class="bg-light">
-<nav class="navbar navbar-expand-lg bg-white border-bottom">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="/">DormAlign</a>
-        <div class="ms-auto d-flex gap-2">
-            <a class="btn btn-outline-primary btn-sm" href="/admin/profile">Admin Profile</a>
-            <a class="btn btn-outline-secondary btn-sm" href="/admin/view/compatibility">Scores</a>
-            <a class="btn btn-outline-danger btn-sm" href="/logout">Logout</a>
-        </div>
-    </div>
-</nav>
+<body>
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <div class="brand-pill">Admin Portal</div>
+        <nav class="side-nav">
+            <a class="side-link active" href="/admin/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+            <a class="side-link" href="/"><i class="fa-solid fa-house"></i>Return Home</a>
+            <a class="side-link" href="/admin/profile"><i class="fa-solid fa-user-shield"></i>Admin Profile</a>
+            <a class="side-link" href="/admin/view/compatibility"><i class="fa-solid fa-heart-pulse"></i>Compatibility</a>
+            <a class="side-link" href="/submissions"><i class="fa-solid fa-users"></i>All Students</a>
+            <a class="side-link" href="/admin/pending-requests"><i class="fa-solid fa-hourglass-half"></i>Pending Requests</a>
+            <a class="side-link" href="/admin/rooms"><i class="fa-solid fa-bed"></i>Room Management</a>
+            <a class="side-link" href="/logout"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        </nav>
+    </aside>
 
-<div class="container py-4">
-    <h3 class="mb-1">Admin Summary Dashboard</h3>
-    <p class="text-muted mb-3">{{ system_status }}</p>
-
-    {% if auto_assigned is not none %}
-    <div class="alert alert-info">Auto assign completed. Students assigned in this run: {{ auto_assigned }}</div>
-    {% endif %}
-    {% if pair_assigned is not none %}
-    <div class="alert alert-secondary">Pairs assigned in this run: {{ pair_assigned }}</div>
-    {% endif %}
-    {% if single_assigned is not none %}
-    <div class="alert alert-secondary">Single-bed students assigned in this run: {{ single_assigned }}</div>
-    {% endif %}
-    {% if single_msg == "assigned" %}
-    <div class="alert alert-success">Single-room assignment completed.</div>
-    {% endif %}
-    {% if single_err == "already_assigned" %}
-    <div class="alert alert-danger">Student is already assigned.</div>
-    {% elif single_err == "student_missing" %}
-    <div class="alert alert-danger">Student not found.</div>
-    {% elif single_err == "no_single_room" %}
-    <div class="alert alert-danger">No single-bed room available in this student's hostel.</div>
-    {% endif %}
-    {% if room_msg == "created" %}
-    <div class="alert alert-success">Room created successfully.</div>
-    {% elif room_msg == "updated" %}
-    <div class="alert alert-success">Room updated successfully.</div>
-    {% elif room_msg == "deleted" %}
-    <div class="alert alert-success">Room deleted successfully.</div>
-    {% endif %}
-    {% if room_err == "missing_room_number" %}
-    <div class="alert alert-danger">Room number is required.</div>
-    {% elif room_err == "invalid_hostel" %}
-    <div class="alert alert-danger">Please select a valid hostel.</div>
-    {% elif room_err == "invalid_capacity" %}
-    <div class="alert alert-danger">Capacity must be a positive number.</div>
-    {% elif room_err == "invalid_occupancy" %}
-    <div class="alert alert-danger">Occupied beds must be between 0 and total beds.</div>
-    {% elif room_err == "duplicate_room" %}
-    <div class="alert alert-danger">Room number already exists in the selected hostel.</div>
-    {% elif room_err == "room_in_use" %}
-    <div class="alert alert-danger">Room cannot be deleted while assignments exist.</div>
-    {% endif %}
-
-    <div class="row g-3 mb-4">
-        <div class="col-md-2"><div class="card shadow-sm"><div class="card-body"><small>Total Students</small><h4>{{ stats.total_students }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card shadow-sm"><div class="card-body"><small>Assigned</small><h4>{{ stats.assigned_students }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card shadow-sm"><div class="card-body"><small>Unassigned</small><h4>{{ stats.unassigned_students }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card shadow-sm"><div class="card-body"><small>Total Rooms</small><h4>{{ stats.total_rooms }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card shadow-sm"><div class="card-body"><small>Occupied Rooms</small><h4>{{ stats.occupied_rooms }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card shadow-sm"><div class="card-body"><small>Available Rooms</small><h4>{{ stats.available_rooms }}</h4></div></div></div>
-        <div class="col-md-2"><div class="card shadow-sm"><div class="card-body"><small>Pending Requests</small><h4>{{ stats.pending_requests }}</h4></div></div></div>
-        <div class="col-md-2">
-      <div class="card shadow-sm">
-        <div class="card-body">
-            <small>Capacity Left</small>
-            <h4>{{ stats.capacity_left }}</h4>
-            <small class="text-muted">Occupancy: {{ stats.occupancy_percent }}%</small>
-        </div>
-      </div>
-      </div>
-    </div>
-
-    <div class="d-flex flex-wrap gap-2 mb-4">
-        <a href="/admin/calculate_compatibility" class="btn btn-outline-primary">Calculate Scores</a>
-        <form action="/admin/auto-assign-top-matches" method="POST">
-            <button class="btn btn-primary" type="submit">Auto Assign Top Matches</button>
-        </form>
-        <a href="#pending-requests" class="btn btn-outline-warning">View Pending Requests</a>
-        <a href="#room-management" class="btn btn-outline-success">Manage Rooms</a>
-        <a href="/submissions" class="btn btn-outline-dark">View All Students</a>
-        <a href="/admin/dashboard?filter=all" class="btn btn-sm {% if current_filter == 'all' %}btn-dark{% else %}btn-outline-dark{% endif %}">All Students</a>
-        <a href="/admin/dashboard?filter=assigned" class="btn btn-sm {% if current_filter == 'assigned' %}btn-success{% else %}btn-outline-success{% endif %}">Assigned Only</a>
-        <a href="/admin/dashboard?filter=unassigned" class="btn btn-sm {% if current_filter == 'unassigned' %}btn-warning{% else %}btn-outline-warning{% endif %}">Unassigned Only</a>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-white"><strong>Assignment Overview</strong></div>
-        <div class="table-responsive">
-            <table class="table table-sm mb-0">
-                <thead>
-                    <tr>
-                        <th>Student</th>
-                        <th>Assigned Roommate</th>
-                        <th>Room</th>
-                        <th>Compatibility</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in assignments %}
-                    <tr>
-                        <td>{{ row.student_name }}</td>
-                        <td>{{ row.roommate_name }}</td>
-                        <td>{{ row.room_number }}</td>
-                        <td>{{ row.compatibility_score }}</td>
-                        <td>{{ row.status }}</td>
-                        <td>
-                            {% if row.has_assignment %}
-                            <form action="/admin/unassign/{{ row.student_id }}" method="POST">
-                                <button class="btn btn-sm btn-outline-danger" type="submit">Unassign</button>
-                            </form>
-                            {% else %}
-                            <span class="text-muted">-</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if not assignments %}
-                    <tr><td colspan="6" class="text-center text-muted py-3">No students found for this filter.</td></tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card shadow-sm mt-4">
-    <div class="card-header bg-white"><strong>Room Occupancy Summary (Hostel-wise)</strong></div>
-    <div class="table-responsive">
-        <table class="table table-sm mb-0">
-            <thead>
-                <tr>
-                    <th>Hostel</th>
-                    <th>Total Rooms</th>
-                    <th>Total Capacity</th>
-                    <th>Occupied</th>
-                    <th>Available</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in occupancy_summary %}
-                <tr>
-                    <td>{{ row[0] }}</td>
-                    <td>{{ row[1] }}</td>
-                    <td>{{ row[2] }}</td>
-                    <td>{{ row[3] }}</td>
-                    <td>{{ row[4] }}</td>
-                </tr>
-                {% endfor %}
-                {% if not occupancy_summary %}
-                <tr><td colspan="5" class="text-center text-muted py-3">No hostels/rooms found.</td></tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-    </div>
-
-    <div id="pending-requests" class="card shadow-sm mb-4">
-        <div class="card-header bg-white"><strong>Pending Requests</strong></div>
-        <div class="table-responsive">
-            <table class="table table-sm mb-0">
-                <thead><tr><th>Request ID</th><th>Student</th><th>Preferred Room Type</th><th>Action</th></tr></thead>
-                <tbody>
-                {% for req in pending_rows %}
-                <tr>
-                    <td>{{ req[0] }}</td>
-                    <td>{{ req[2] }}</td>
-                    <td>{{ req[3] }}</td>
-                    <td>
-                        {% if req[3]|lower == 'single' and not req[5] %}
-                        <form action="/admin/assign-single/{{ req[1] }}" method="POST">
-                            <button class="btn btn-sm btn-outline-primary" type="submit">Assign Single</button>
-                        </form>
-                        {% else %}
-                        <span class="text-muted">-</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not pending_rows %}
-                <tr><td colspan="4" class="text-center text-muted py-3">No pending requests.</td></tr>
-                {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="room-management" class="card shadow-sm">
-        <div class="card-header bg-white"><strong>Room Capacity</strong></div>
-        <div class="card-body border-bottom">
-            <form action="/admin/rooms/create" method="POST" class="row g-2 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label small mb-1">Hostel</label>
-                    <select name="hostel_id" class="form-select form-select-sm" required>
-                        <option value="">Select hostel</option>
-                        {% for h in hostels %}
-                        <option value="{{ h[0] }}">{{ h[1] }}</option>
-                        {% endfor %}
-                    </select>
+    <main class="admin-main">
+        <section class="hero-card">
+            <div class="hero-banner">
+                <h1>Welcome, {{ admin.username }}</h1>
+                <p>Admin Dashboard</p>
+            </div>
+            <div class="info-strip">
+                <div class="info-item">
+                    <small>System Status</small>
+                    <strong>{{ system_status }}</strong>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label small mb-1">Room Number</label>
-                    <input type="text" name="room_number" class="form-control form-control-sm" placeholder="e.g. A-101" required>
+                <div class="info-item">
+                    <small>Occupancy Snapshot</small>
+                    <strong>{{ stats.occupancy_percent }}% Occupied</strong>
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label small mb-1">Beds</label>
-                    <input type="number" min="1" name="capacity" class="form-control form-control-sm" value="2" required>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small mb-1">Occupied</label>
-                    <input type="number" min="0" name="current_occupancy" class="form-control form-control-sm" value="0" required>
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-sm btn-success w-100" type="submit">Add Room</button>
-                </div>
+            </div>
+        </section>
+
+        {% if auto_assigned is not none %}
+        <div class="msg-card msg-info">Auto assign completed. Students assigned in this run: {{ auto_assigned }}</div>
+        {% endif %}
+        {% if pair_assigned is not none %}
+        <div class="msg-card msg-info">Pairs assigned in this run: {{ pair_assigned }}</div>
+        {% endif %}
+        {% if single_assigned is not none %}
+        <div class="msg-card msg-info">Single-bed students assigned in this run: {{ single_assigned }}</div>
+        {% endif %}
+
+        <section class="stats-grid">
+            <article class="stat-card"><small>Total Students</small><strong>{{ stats.total_students }}</strong></article>
+            <article class="stat-card"><small>Assigned</small><strong>{{ stats.assigned_students }}</strong></article>
+            <article class="stat-card"><small>Unassigned</small><strong>{{ stats.unassigned_students }}</strong></article>
+            <article class="stat-card"><small>Pending Requests</small><strong>{{ stats.pending_requests }}</strong></article>
+            <article class="stat-card"><small>Total Rooms</small><strong>{{ stats.total_rooms }}</strong></article>
+            <article class="stat-card"><small>Occupied Rooms</small><strong>{{ stats.occupied_rooms }}</strong></article>
+            <article class="stat-card"><small>Available Rooms</small><strong>{{ stats.available_rooms }}</strong></article>
+            <article class="stat-card"><small>Capacity Left</small><strong>{{ stats.capacity_left }}</strong></article>
+        </section>
+
+        <section class="admin-actions">
+            <a href="/admin/calculate_compatibility" class="chip-btn"><i class="fa-solid fa-calculator"></i>Calculate Scores</a>
+            <form action="/admin/auto-assign-top-matches" method="POST">
+                <button class="chip-btn primary" type="submit"><i class="fa-solid fa-wand-magic-sparkles"></i>Auto Assign Top Matches</button>
             </form>
-        </div>
-        <div class="table-responsive">
-            <table class="table table-sm mb-0">
-                <thead><tr><th>Room ID</th><th>Hostel</th><th>Room Number</th><th>Status</th><th>Beds</th><th>Occupied</th><th>Available</th><th>Actions</th></tr></thead>
-                <tbody>
-                {% for room in room_rows %}
-                <tr>
-                    <td>{{ room[0] }}</td>
-                    <td>{{ room[2] }}</td>
-                    <td>{{ room[1] }}</td>
-                    <td>
-                        {% if room[6] == "Full" %}
-                        <span class="badge bg-danger">Full</span>
-                        {% elif room[6] == "Empty" %}
-                        <span class="badge bg-secondary">Empty</span>
-                        {% elif room[6] == "Available" %}
-                        <span class="badge bg-success">Available</span>
-                        {% else %}
-                        <span class="badge bg-warning text-dark">{{ room[6] }}</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ room[3] }}</td>
-                    <td>{{ room[4] }}</td>
-                    <td>{{ room[5] }}</td>
-                    <td>
-                        <form action="/admin/rooms/{{ room[0] }}/update" method="POST" class="d-flex flex-wrap gap-1 mb-1">
-                            <select name="hostel_id" class="form-select form-select-sm" style="width: 130px;" required>
-                                {% for h in hostels %}
-                                <option value="{{ h[0] }}" {% if h[0] == room[7] %}selected{% endif %}>{{ h[1] }}</option>
-                                {% endfor %}
-                            </select>
-                            <input type="text" name="room_number" class="form-control form-control-sm" style="width: 95px;" value="{{ room[1] }}" required>
-                            <input type="number" min="1" name="capacity" class="form-control form-control-sm" style="width: 70px;" value="{{ room[3] }}" required>
-                            <input type="number" min="0" name="current_occupancy" class="form-control form-control-sm" style="width: 75px;" value="{{ room[4] }}" required>
-                            <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
-                        </form>
-                        <form action="/admin/rooms/{{ room[0] }}/delete" method="POST">
-                            <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not room_rows %}
-                <tr><td colspan="8" class="text-center text-muted py-3">No rooms found.</td></tr>
-                {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+            <a href="/admin/pending-requests" class="chip-btn"><i class="fa-solid fa-hourglass-half"></i>Pending Requests</a>
+            <a href="/admin/rooms" class="chip-btn"><i class="fa-solid fa-door-open"></i>Manage Rooms</a>
+        </section>
+    </main>
 </div>
 </body>
 </html>

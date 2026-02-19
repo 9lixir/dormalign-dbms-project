@@ -3,181 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DormAlign | Submissions</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <title>DormAlign | Student Submissions</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --page-bg: #edf3ff;
+            --line: #c9d9ff;
+            --blue: #1d4ed8;
+            --purple: #7c3aed;
+            --light-blue: #0ea5e9;
+            --sidebar: #0e1f4a;
+            --sidebar-2: #142d67;
+            --ink: #12244c;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-        }
-
-        .navbar {
-            border-bottom: 1px solid #eee;
-            animation: slideDown 0.5s ease forwards;
-        }
-        @keyframes slideDown {
-            from { transform: translateY(-100%); opacity: 0; }
-            to   { transform: translateY(0);     opacity: 1; }
-        }
-        .navbar-brand { transition: letter-spacing 0.3s ease; }
-        .navbar-brand:hover { letter-spacing: 2px; }
-
-        .nav-link {
-            position: relative;
-            transition: color 0.2s;
-        }
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            left: 0; bottom: 0;
-            width: 0; height: 2px;
-            background: #0d6efd;
-            transition: width 0.25s ease;
-        }
-        .nav-link:hover::after { width: 100%; }
-
-        .page-header {
-            padding: 50px 0 30px;
-            animation: fadeUp 0.6s cubic-bezier(.22,1,.36,1) 0.1s both;
-        }
-        .page-title {
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: -1px;
-        }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0);    }
-        }
-
-        .table-card {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-            animation: fadeUp 0.6s cubic-bezier(.22,1,.36,1) 0.2s both;
-            margin-bottom: 24px;
-        }
-
-        .table {
             margin: 0;
-            font-size: 0.875rem;
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--page-bg);
         }
 
-        .table thead tr {
-            background: white;
-            border-bottom: 2px solid #edf2f7;
+        .admin-shell { min-height: 100vh; display: flex; }
+
+        .admin-sidebar {
+            width: 268px;
+            background: linear-gradient(180deg, var(--sidebar), var(--sidebar-2));
+            padding: 20px 14px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            border-right: 1px solid rgba(164, 186, 255, 0.22);
         }
-        .table thead th {
-            font-size: 0.7rem;
+
+        .brand-pill {
+            border-radius: 14px;
+            background: linear-gradient(120deg, #4f46e5, #9333ea);
+            color: #fff;
             font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #999;
-            padding: 14px 16px;
-            border: none;
-            white-space: nowrap;
-            background: white;
+            text-align: center;
+            padding: 14px 12px;
+            margin-bottom: 18px;
         }
 
-        .table tbody tr {
-            border-bottom: 1px solid #f1f3f5;
-            opacity: 0;
-            transform: translateY(8px);
-            transition: background 0.15s;
-        }
-        .table tbody tr.visible {
-            animation: rowIn 0.35s ease forwards;
-        }
-        @keyframes rowIn {
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .table tbody tr:last-child { border-bottom: none; }
-        .table tbody tr:hover { background: #f8fbff; }
+        .side-nav { display: grid; gap: 8px; }
 
-        .table tbody td {
-            padding: 12px 16px;
-            border: none;
-            vertical-align: middle;
-            color: #444;
-            font-weight: 500;
-        }
-
-        .table tbody td:first-child {
-            font-size: 0.75rem;
+        .side-link {
+            color: #e5edff;
+            text-decoration: none;
             font-weight: 700;
-            color: #bbb;
+            border-radius: 12px;
+            padding: 11px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid transparent;
         }
 
-        .badge-pill {
-            display: inline-block;
-            padding: 3px 10px;
+        .side-link:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        .side-link.active { background: linear-gradient(120deg, #4f46e5, #9333ea); color: #fff; }
+
+        .admin-main { flex: 1; padding: 24px; }
+
+        .hero {
+            border: 1px solid #d5e2ff;
             border-radius: 20px;
-            font-size: 0.72rem;
-            font-weight: 700;
-        }
-
-        .actions-wrap {
-            opacity: 0;
-            animation: fadeUp 0.5s ease 0.4s forwards;
-            margin-bottom: 60px;
-        }
-
-        .btn-home {
-            border-radius: 8px;
-            padding: 10px 25px;
-            font-weight: 600;
-            position: relative;
             overflow: hidden;
-            transition: color 0.3s;
+            background: #fff;
+            box-shadow: 0 18px 35px rgba(18, 42, 120, 0.14);
+            margin-bottom: 16px;
         }
-        .btn-home::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: #212529;
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s ease;
-            z-index: 0;
+
+        .hero-banner {
+            background: linear-gradient(115deg, var(--blue), var(--purple), var(--light-blue));
+            color: #f8fbff;
+            padding: 18px 20px;
         }
-        .btn-home:hover::before { transform: scaleX(1); }
-        .btn-home:hover { color: white !important; }
-        .btn-home span { position: relative; z-index: 1; }
+
+        .hero-banner h1 { margin: 0; font-size: 1.5rem; font-weight: 800; }
+
+        .btn-soft {
+            border-radius: 10px;
+            border: 1px solid #c8d8ff;
+            background: #f4f8ff;
+            color: #1f3d79;
+            font-weight: 700;
+            padding: 7px 11px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-soft:hover { background: #e9f1ff; color: #153362; }
+
+        .panel {
+            border: 1px solid #d5e2ff;
+            border-radius: 16px;
+            background: #fff;
+            overflow: hidden;
+            box-shadow: 0 10px 24px rgba(19, 47, 130, 0.1);
+        }
+
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1120px;
+        }
+
+        th, td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e4edff;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        th {
+            color: #3f5687;
+            text-transform: uppercase;
+            letter-spacing: 0.55px;
+            font-size: 0.72rem;
+            font-weight: 800;
+            background: #fbfdff;
+            white-space: nowrap;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        @media (max-width: 992px) {
+            .admin-shell { display: block; }
+            .admin-sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                border-right: 0;
+                border-bottom: 1px solid rgba(164, 186, 255, 0.22);
+            }
+            .side-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .admin-main { padding: 16px; }
+        }
+
+        @media (max-width: 640px) {
+            .side-nav { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <div class="brand-pill">Admin Portal</div>
+        <nav class="side-nav">
+            <a class="side-link" href="/admin/dashboard"><i class="fa-solid fa-chart-line"></i>Dashboard</a>
+            <a class="side-link" href="/"><i class="fa-solid fa-house"></i>Return Home</a>
+            <a class="side-link" href="/admin/profile"><i class="fa-solid fa-user-shield"></i>Admin Profile</a>
+            <a class="side-link" href="/admin/view/compatibility"><i class="fa-solid fa-heart-pulse"></i>Compatibility</a>
+            <a class="side-link active" href="/submissions"><i class="fa-solid fa-users"></i>All Students</a>
+            <a class="side-link" href="/admin/pending-requests"><i class="fa-solid fa-hourglass-half"></i>Pending Requests</a>
+            <a class="side-link" href="/admin/rooms"><i class="fa-solid fa-bed"></i>Room Management</a>
+            <a class="side-link" href="/logout"><i class="fa-solid fa-right-from-bracket"></i>Logout</a>
+        </nav>
+    </aside>
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold text-primary" href="/">DORM<span class="text-dark">ALIGN</span></a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-                    <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
-                </ul>
+    <main class="admin-main">
+        <section class="hero">
+            <div class="hero-banner">
+                <h1>Student Submissions</h1>
             </div>
-        </div>
-    </nav>
+        </section>
 
-    <div class="container">
-        <div class="page-header">
-            <div class="py-3 px-4 border border-dark border-2 d-inline-block">
-                <h2 class="page-title m-0">Student Submissions</h2>
-            </div>
+        <div class="mb-3 d-flex gap-2 flex-wrap">
+            <a class="btn-soft" href="/admin/dashboard"><i class="fa-solid fa-arrow-left"></i>Return to Dashboard</a>
+            <a class="btn-soft" href="/"><i class="fa-solid fa-house"></i>Return Home</a>
         </div>
 
-        <div class="table-card">
-            <div class="table-responsive">
-                <table class="table">
+        <section class="panel">
+            <div class="table-wrap">
+                <table>
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -186,11 +194,11 @@
                             <th>Department</th>
                             <th>Year</th>
                             <th>Hostel</th>
-                            <th><i class="fa-solid fa-moon me-1" style="color:#0d6efd;"></i>Sleep</th>
+                            <th><i class="fa-solid fa-moon me-1" style="color:#1d4ed8;"></i>Sleep</th>
                             <th><i class="fa-solid fa-broom me-1" style="color:#f59e0b;"></i>Clean</th>
                             <th><i class="fa-solid fa-volume-high me-1" style="color:#0ea5e9;"></i>Noise</th>
-                            <th><i class="fa-solid fa-user-group me-1" style="color:#8b5cf6;"></i>Guests</th>
-                            <th><i class="fa-solid fa-book-open me-1" style="color:#198754;"></i>Study</th>
+                            <th><i class="fa-solid fa-user-group me-1" style="color:#7c3aed;"></i>Guests</th>
+                            <th><i class="fa-solid fa-book-open me-1" style="color:#0f9d58;"></i>Study</th>
                             <th><i class="fa-solid fa-door-open me-1" style="color:#ec4899;"></i>Room</th>
                         </tr>
                     </thead>
@@ -214,30 +222,8 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-
-        <div class="actions-wrap">
-            <a href="/" class="btn btn-outline-dark btn-home">
-                <span><i class="fa-solid fa-arrow-left me-2"></i>Back</span>
-            </a>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.05 });
-
-        document.querySelectorAll('tbody tr').forEach((row, i) => {
-            row.style.animationDelay = (i * 0.05) + 's';
-            observer.observe(row);
-        });
-    </script>
+        </section>
+    </main>
+</div>
 </body>
 </html>
