@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DormAlign | Roommate Compatibility</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <div class="container py-4">
+        <a href="/dashboard" class="btn btn-outline-dark btn-sm mb-3">&larr; Back to Dashboard</a>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h3 class="mb-1">Roommate Compatibility</h3>
+                <p class="text-muted mb-3">Students with similar lifestyle preferences</p>
+
+                {% if request_ok %}
+                <div class="alert alert-success">Request sent successfully.</div>
+                {% endif %}
+                {% if request_error == "self_request" %}
+                <div class="alert alert-danger">You cannot send request to yourself.</div>
+                {% elif request_error == "hostel_mismatch" %}
+                <div class="alert alert-danger">You can only request students from the same hostel.</div>
+                {% elif request_error == "already_assigned" %}
+                <div class="alert alert-danger">You already have a room assigned.</div>
+                {% elif request_error == "single_pref" %}
+                <div class="alert alert-danger">Your current preference is Single; update preferences to send requests.</div>
+                {% endif %}
+                {% if block_reason %}
+                <div class="alert alert-warning">{{ block_reason }}</div>
+                {% endif %}
+
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Department</th>
+                                <th>Year</th>
+                                <th>Compatibility Score (%)</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in matches %}
+                            <tr>
+                                <td>{{ row.name }}</td>
+                                <td>{{ row.department }}</td>
+                                <td>{{ row.year }}</td>
+                                <td>
+                                    <span class="badge {% if row.score >= 80 %}bg-success{% elif row.score >= 60 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                        {{ row.score }}%
+                                    </span>
+                                </td>
+                                <td class="d-flex gap-2">
+                                    <a href="/submissions" class="btn btn-sm btn-outline-primary">View Profile</a>
+                                    {% if row.request_sent %}
+                                    <button class="btn btn-sm btn-secondary" disabled>Request Sent</button>
+                                    {% elif block_reason %}
+                                    <button class="btn btn-sm btn-secondary" disabled>Send Request</button>
+                                    {% else %}
+                                    <form action="/student/send_request/{{ row.student_id }}" method="POST">
+                                        <button type="submit" class="btn btn-sm btn-dark">Send Request</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not matches %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">No compatibility records found yet. Ask admin to calculate scores.</td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
