@@ -135,6 +135,57 @@ def get_admin_summary_stats(cur):
     }
     return stats, system_status
 
+
+def ensure_notifications_table(cur):
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS notifications (
+            notification_id SERIAL PRIMARY KEY,
+            recipient_student_id INT NOT NULL REFERENCES student(student_id) ON DELETE CASCADE,
+            sender_student_id INT REFERENCES student(student_id) ON DELETE SET NULL,
+            notification_type VARCHAR(40) NOT NULL DEFAULT 'general',
+            message TEXT NOT NULL,
+            is_read BOOLEAN NOT NULL DEFAULT FALSE,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+
+
+def get_student_notifications(cur, student_id, limit=10):
+    ensure_notifications_table(cur)
+    cur.execute(
+        """
+        SELECT
+            n.notification_id,
+            n.message,
+            n.is_read,
+            n.created_at,
+            COALESCE(s.name, 'Student') AS sender_name
+        FROM notifications n
+        LEFT JOIN student s ON s.student_id = n.sender_student_id
+        WHERE n.recipient_student_id = %s
+        ORDER BY n.created_at DESC, n.notification_id DESC
+        LIMIT %s
+        """,
+        (student_id, limit)
+    )
+    rows = cur.fetchall()
+    items = []
+    unread_count = 0
+    for row in rows:
+        item = {
+            "notification_id": row[0],
+            "message": row[1],
+            "is_read": bool(row[2]),
+            "created_at": row[3],
+            "sender_name": row[4],
+        }
+        if not item["is_read"]:
+            unread_count += 1
+        items.append(item)
+    return items, unread_count
+
 #compat scores calculation
 
 def calculate_compatibility(s1,s2):
@@ -352,10 +403,10 @@ def dashboard():
     """, (session["user_id"],))
     
     data = cur.fetchone()
-    cur.close()
-    conn.close()
 
     if not data:
+        cur.close()
+        conn.close()
         return "<h2>No data found for this user.</h2>"
 
     student = {
@@ -373,7 +424,17 @@ def dashboard():
         "noise_tolerance": data[8]
     }
 
-    return render_template("dashboard.html", student=student, preferences=preferences)
+    notifications, unread_notifications = get_student_notifications(cur, student["student_id"], limit=8)
+
+    cur.close()
+    conn.close()
+    return render_template(
+        "dashboard.html",
+        student=student,
+        preferences=preferences,
+        notifications=notifications,
+        unread_notifications=unread_notifications,
+    )
 
 
 @app.route("/student/compatibility")
@@ -436,16 +497,6 @@ def student_compatibility():
     )
     rows = cur.fetchall()
 
-    cur.execute(
-        """
-        SELECT EXISTS(
-            SELECT 1 FROM room_assignment WHERE student_id = %s
-        )
-        """,
-        (student_id,)
-    )
-    has_room_assignment = bool(cur.fetchone()[0])
-
     cur.close()
     conn.close()
 
@@ -465,9 +516,7 @@ def student_compatibility():
     request_error = request.args.get("err")
     request_ok = request.args.get("ok")
     block_reason = None
-    if has_room_assignment:
-        block_reason = "You already have a room assigned."
-    elif preferred_room_type == "single":
+    if preferred_room_type == "single":
         block_reason = "Single-room preference is active; roommate requests are disabled."
 
     current_user = {
@@ -500,6 +549,8 @@ def student_send_request(target_student_id):
         conn.close()
         return redirect("/roommate")
 
+    ensure_notifications_table(cur)
+
     if student_id == target_student_id:
         cur.close()
         conn.close()
@@ -519,15 +570,6 @@ def student_send_request(target_student_id):
         cur.close()
         conn.close()
         return redirect("/student/compatibility?err=hostel_mismatch")
-
-    cur.execute(
-        "SELECT EXISTS(SELECT 1 FROM room_assignment WHERE student_id = %s)",
-        (student_id,)
-    )
-    if cur.fetchone()[0]:
-        cur.close()
-        conn.close()
-        return redirect("/student/compatibility?err=already_assigned")
 
     cur.execute(
         """
@@ -562,10 +604,66 @@ def student_send_request(target_student_id):
             (student_id, target_student_id)
         )
 
+    cur.execute("SELECT name FROM student WHERE student_id = %s", (student_id,))
+    sender_row = cur.fetchone()
+    sender_name = sender_row[0] if sender_row else "A student"
+
+    cur.execute(
+        """
+        DELETE FROM notifications
+        WHERE recipient_student_id = %s
+          AND sender_student_id = %s
+          AND notification_type = 'roommate_request'
+          AND is_read = FALSE
+        """,
+        (target_student_id, student_id)
+    )
+    cur.execute(
+        """
+        INSERT INTO notifications (
+            recipient_student_id,
+            sender_student_id,
+            notification_type,
+            message
+        )
+        VALUES (%s, %s, 'roommate_request', %s)
+        """,
+        (target_student_id, student_id, f"{sender_name} sent you a roommate request.")
+    )
+
     conn.commit()
     cur.close()
     conn.close()
     return redirect("/student/compatibility?ok=1")
+
+
+@app.route("/student/notifications/<int:notification_id>/read", methods=["POST"])
+def student_mark_notification_read(notification_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    student_id = get_student_id_by_user_id(cur, session["user_id"])
+    if not student_id:
+        cur.close()
+        conn.close()
+        return redirect("/roommate")
+
+    ensure_notifications_table(cur)
+    cur.execute(
+        """
+        UPDATE notifications
+        SET is_read = TRUE
+        WHERE notification_id = %s
+          AND recipient_student_id = %s
+        """,
+        (notification_id, student_id)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect("/dashboard")
 
 
 @app.route("/student/match_profile/<int:target_student_id>")
@@ -759,11 +857,22 @@ def update_preferences():
         return redirect("/roommate")
 
     # Get current preferences
-    cur.execute("""
-        SELECT sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style
-        FROM lifestyle_preferences
-        WHERE student_id = %s
-    """, (student_id,))
+    cur.execute(
+        """
+        SELECT
+            lp.preference_id,
+            lp.sleep_time,
+            lp.cleanliness_level,
+            lp.noise_tolerance,
+            lp.guest_preference,
+            lp.study_style,
+            COALESCE(rr.preferred_room_type, 'Double') AS preferred_room_type
+        FROM lifestyle_preferences lp
+        LEFT JOIN roommate_request rr ON rr.student_id = lp.student_id
+        WHERE lp.student_id = %s
+        """,
+        (student_id,)
+    )
     pref = cur.fetchone()
 
     if request.method == "POST":
@@ -772,6 +881,7 @@ def update_preferences():
         noise_tolerance = request.form.get("noise_tolerance")
         guest_preference = request.form.get("guest_preference") == "True"
         study_style = request.form.get("study_style")
+        preferred_room_type = request.form.get("preferred_room_type", "Double")
 
         # Update preferences
         if pref:
@@ -786,6 +896,23 @@ def update_preferences():
                 INSERT INTO lifestyle_preferences (student_id, sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style)
                 VALUES (%s, %s, %s, %s, %s, %s)
             """, (student_id, sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style))
+
+        cur.execute(
+            """
+            UPDATE roommate_request
+            SET preferred_room_type = %s
+            WHERE student_id = %s
+            """,
+            (preferred_room_type, student_id)
+        )
+        if cur.rowcount == 0:
+            cur.execute(
+                """
+                INSERT INTO roommate_request (student_id, preferred_room_type, request_status)
+                VALUES (%s, %s, 'Pending')
+                """,
+                (student_id, preferred_room_type)
+            )
 
         conn.commit()
         cur.close()

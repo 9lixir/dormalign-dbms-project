@@ -219,6 +219,14 @@
                         </select>
                     </div>
 
+                    <div class="field">
+                        <label class="form-label"><i class="fa-solid fa-bed me-1" style="color:#7c3aed;"></i> Room Preference</label>
+                        <select name="preferred_room_type" class="form-select">
+                            <option value="Single" {% if pref and pref[6]|lower == "single" %}selected{% endif %}>Single (Solo room)</option>
+                            <option value="Double" {% if not pref or pref[6]|lower != "single" %}selected{% endif %}>Double (Shared room)</option>
+                        </select>
+                    </div>
+
                     <div class="actions">
                         <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk me-2"></i>Save Changes</button>
                         <a href="/dashboard" class="btn btn-back"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>

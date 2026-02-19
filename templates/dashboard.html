@@ -283,6 +283,83 @@
             overflow: hidden;
         }
 
+        .notify-card {
+            border: 1px solid #d5e2ff;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 10px 22px rgba(18, 42, 120, 0.1);
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+
+        .notify-head {
+            padding: 12px 14px;
+            border-bottom: 1px solid #d8e6ff;
+            background: #f4f8ff;
+            font-weight: 800;
+            color: #24447a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notify-badge {
+            font-size: 0.72rem;
+            border-radius: 999px;
+            padding: 4px 8px;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-weight: 800;
+        }
+
+        .notify-list {
+            padding: 10px 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .notify-item {
+            border: 1px solid #dce8ff;
+            border-radius: 10px;
+            background: #f9fbff;
+            padding: 10px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notify-msg {
+            margin: 0;
+            font-weight: 700;
+            color: #173769;
+            font-size: 0.9rem;
+        }
+
+        .notify-time {
+            margin: 2px 0 0;
+            color: #5f78a7;
+            font-size: 0.76rem;
+            font-weight: 600;
+        }
+
+        .notify-read {
+            border-radius: 8px;
+            border: 1px solid #a8c5ff;
+            background: #eef4ff;
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 0.78rem;
+            padding: 6px 10px;
+            white-space: nowrap;
+        }
+
+        .notify-empty {
+            padding: 12px 14px;
+            color: #5871a1;
+            font-weight: 600;
+        }
+
         .hero-content {
             display: grid;
             grid-template-columns: 1.3fr 1fr;
@@ -340,6 +417,7 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
                     <li class="nav-item"><a class="nav-link active" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/dashboard">Notifications{% if unread_notifications %} ({{ unread_notifications }}){% endif %}</a></li>
                     <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
                 </ul>
             </div>
@@ -363,6 +441,32 @@
                     <img src="{{ url_for('static', filename='assets/bunk-bed.png') }}" alt="Student dashboard illustration">
                 </div>
             </div>
+        </section>
+
+        <section class="notify-card">
+            <div class="notify-head">
+                <span>Notifications</span>
+                <span class="notify-badge">{{ unread_notifications }} unread</span>
+            </div>
+            {% if notifications %}
+            <div class="notify-list">
+                {% for n in notifications %}
+                <div class="notify-item">
+                    <div>
+                        <p class="notify-msg">{{ n.message }}</p>
+                        <p class="notify-time">{{ n.created_at.strftime('%b %d, %I:%M %p') if n.created_at else '' }}</p>
+                    </div>
+                    {% if not n.is_read %}
+                    <form action="/student/notifications/{{ n.notification_id }}/read" method="POST">
+                        <button type="submit" class="notify-read">Mark read</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="notify-empty">No notifications yet.</div>
+            {% endif %}
         </section>
 
         <div class="row g-4">
