@@ -4,16 +4,212 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DormAlign | Roommate Compatibility</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <div class="container py-4">
-        <a href="/dashboard" class="btn btn-outline-dark btn-sm mb-3">&larr; Back to Dashboard</a>
+    <style>
+        :root {
+            --page-bg: #edf3ff;
+            --card-bg: #ffffff;
+            --ink: #0d1b3d;
+            --muted: #5a6889;
+            --line: #c9d9ff;
+            --blue: #2563eb;
+            --cyan: #06b6d4;
+            --teal: #0891b2;
+            --danger: #dc2626;
+            --success: #0f9d58;
+        }
 
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h3 class="mb-1">Roommate Compatibility</h3>
-                <p class="text-muted mb-3">Students with similar lifestyle preferences</p>
+        body {
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--page-bg);
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .back-btn {
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--blue);
+            font-weight: 700;
+            padding: 10px 16px;
+            text-decoration: none;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+        }
+
+        .compat-shell {
+            background: var(--card-bg);
+            border: 1px solid #d6e2ff;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(20, 40, 120, 0.14);
+        }
+
+        .compat-hero {
+            background: linear-gradient(115deg, #1d4ed8, #0ea5e9);
+            padding: 28px 28px 24px;
+            color: #f8fbff;
+        }
+
+        .compat-hero h3 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .compat-hero p {
+            margin: 6px 0 0;
+            color: #dbeafe;
+            font-weight: 600;
+        }
+
+        .compat-content {
+            padding: 20px 20px 24px;
+            background: #f8fbff;
+        }
+
+        .alert {
+            border-radius: 12px;
+            border: 1px solid transparent;
+            font-weight: 700;
+        }
+
+        .alert-success {
+            background: #e8fff2;
+            border-color: #b6f3d0;
+            color: #0d7a42;
+        }
+
+        .alert-danger {
+            background: #fff1f1;
+            border-color: #ffd1d1;
+            color: #aa2020;
+        }
+
+        .alert-warning {
+            background: #fff8e6;
+            border-color: #ffe6a3;
+            color: #8a5a00;
+        }
+
+        .table-wrap {
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .table {
+            margin: 0;
+        }
+
+        .table thead th {
+            background: #edf4ff;
+            color: #1e3769;
+            font-weight: 800;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .table td, .table th {
+            padding: 14px 12px;
+            border-color: #d9e6ff;
+        }
+
+        .table tbody tr:hover {
+            background: #f6fbff;
+        }
+
+        .score-pill {
+            min-width: 60px;
+            text-align: center;
+            border-radius: 999px;
+            padding: 7px 12px;
+            color: #fff;
+            display: inline-block;
+            font-weight: 800;
+            letter-spacing: 0.4px;
+            box-shadow: 0 8px 16px rgba(31, 61, 140, 0.22);
+        }
+
+        .score-high { background: linear-gradient(115deg, #0f9d58, #0cb981); }
+        .score-mid { background: linear-gradient(115deg, #0d6efd, #2563eb); }
+        .score-low { background: linear-gradient(115deg, #64748b, #475569); }
+
+        .action-cell {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .btn {
+            border-radius: 10px;
+            font-weight: 800;
+            border-width: 1px;
+        }
+
+        .btn-profile {
+            color: var(--blue);
+            border-color: #a9c7ff;
+            background: #f2f7ff;
+        }
+
+        .btn-profile:hover {
+            color: #fff;
+            background: var(--blue);
+            border-color: var(--blue);
+        }
+
+        .btn-request {
+            color: #fff;
+            border-color: transparent;
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
+        }
+
+        .btn-request:hover {
+            filter: brightness(1.06);
+            color: #fff;
+        }
+
+        @media (max-width: 768px) {
+            .compat-hero h3 {
+                font-size: 1.5rem;
+            }
+
+            .compat-content {
+                padding: 14px;
+            }
+
+            .table td, .table th {
+                white-space: nowrap;
+                padding: 10px 8px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="topbar">
+            <a href="/dashboard" class="back-btn">&larr; Back to Dashboard</a>
+        </div>
+
+        <div class="compat-shell">
+            <div class="compat-hero">
+                <h3>Roommate Compatibility</h3>
+                <p>Students with similar lifestyle preferences</p>
+            </div>
+            <div class="compat-content">
 
                 {% if request_ok %}
                 <div class="alert alert-success">Request sent successfully.</div>
@@ -31,9 +227,9 @@
                 <div class="alert alert-warning">{{ block_reason }}</div>
                 {% endif %}
 
-                <div class="table-responsive">
-                    <table class="table table-bordered align-middle mb-0">
-                        <thead class="table-light">
+                <div class="table-wrap table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead>
                             <tr>
                                 <th>Student Name</th>
                                 <th>Department</th>
@@ -49,21 +245,23 @@
                                 <td>{{ row.department }}</td>
                                 <td>{{ row.year }}</td>
                                 <td>
-                                    <span class="badge {% if row.score >= 80 %}bg-success{% elif row.score >= 60 %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                    <span class="score-pill {% if row.score >= 80 %}score-high{% elif row.score >= 60 %}score-mid{% else %}score-low{% endif %}">
                                         {{ row.score }}%
                                     </span>
                                 </td>
-                                <td class="d-flex gap-2">
-                                    <a href="/submissions" class="btn btn-sm btn-outline-primary">View Profile</a>
+                                <td>
+                                    <div class="action-cell">
+                                    <a href="/submissions" class="btn btn-sm btn-profile">View Profile</a>
                                     {% if row.request_sent %}
                                     <button class="btn btn-sm btn-secondary" disabled>Request Sent</button>
                                     {% elif block_reason %}
                                     <button class="btn btn-sm btn-secondary" disabled>Send Request</button>
                                     {% else %}
                                     <form action="/student/send_request/{{ row.student_id }}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-dark">Send Request</button>
+                                        <button type="submit" class="btn btn-sm btn-request">Send Request</button>
                                     </form>
                                     {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}

@@ -181,32 +181,23 @@
         .actions-wrap {
             opacity: 0;
             animation: fadeUp 0.5s ease 0.45s forwards;
-        }
-
-        .btn-update {
-            border-radius: 8px;
-            padding: 10px 25px;
-            font-weight: 600;
-            animation: subtlePulse 2.5s ease-in-out infinite;
-        }
-        @keyframes subtlePulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(13,110,253,0.35); }
-            50%       { box-shadow: 0 0 0 8px rgba(13,110,253,0);   }
+            flex-wrap: wrap;
         }
 
         .btn-home {
-            border-radius: 8px;
-            padding: 10px 25px;
-            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 700;
             position: relative;
             overflow: hidden;
             transition: color 0.3s;
+            border-width: 1px;
         }
         .btn-home::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: #212529;
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
             transform: scaleX(0);
             transform-origin: left;
             transition: transform 0.3s ease;
@@ -215,6 +206,126 @@
         .btn-home:hover::before { transform: scaleX(1); }
         .btn-home:hover { color: white !important; }
         .btn-home span { position: relative; z-index: 1; }
+
+        .actions-wrap .btn-outline-success,
+        .actions-wrap .btn-outline-info,
+        .actions-wrap .btn-outline-primary {
+            color: #1d4ed8;
+            border-color: #9ec3ff;
+            background: #f5f9ff;
+        }
+
+        .actions-wrap .btn-outline-dark {
+            color: #1a2c55;
+            border-color: #b6c8eb;
+            background: #f8fbff;
+        }
+
+        :root {
+            --bg: #edf3ff;
+            --panel: #ffffff;
+            --line: #c8d9ff;
+            --ink: #112245;
+            --blue: #1d4ed8;
+            --cyan: #0891b2;
+        }
+
+        body {
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--bg);
+        }
+
+        .page-header .border {
+            border: none !important;
+            border-radius: 18px;
+            background: linear-gradient(115deg, #1d4ed8, #0ea5e9);
+            color: #fff;
+            box-shadow: 0 16px 32px rgba(20, 40, 120, 0.2);
+        }
+
+        .page-title {
+            color: #fff;
+        }
+
+        .dash-card {
+            border-color: var(--line);
+            box-shadow: 0 12px 24px rgba(26, 52, 128, 0.09);
+        }
+
+        .card-header-custom {
+            color: #30507f;
+            border-bottom-color: #d8e6ff;
+        }
+
+        .info-row,
+        .pref-item {
+            border-bottom-color: #dce8ff;
+        }
+
+        .actions-wrap .btn-outline-success,
+        .actions-wrap .btn-outline-info,
+        .actions-wrap .btn-outline-primary,
+        .actions-wrap .btn-outline-dark {
+            border-color: #9ec3ff;
+            color: #1d4ed8;
+            background: #f5f9ff;
+        }
+
+        .dashboard-hero {
+            border: 1px solid #d5e2ff;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 16px 30px rgba(18, 42, 120, 0.12);
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1.3fr 1fr;
+            gap: 16px;
+            padding: 16px;
+            align-items: center;
+            background: #f5f9ff;
+        }
+
+        .hero-copy h3 {
+            margin: 0 0 10px;
+            font-weight: 800;
+            color: #1d4ed8;
+        }
+
+        .hero-copy p {
+            margin: 0;
+            color: #405b8f;
+            font-weight: 600;
+        }
+
+        .hero-image-wrap {
+            border: 1px solid #cbd9ff;
+            border-radius: 14px;
+            background: linear-gradient(130deg, #e8f0ff, #ecf4ff);
+            padding: 10px;
+            min-height: 190px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-image-wrap img {
+            width: 100%;
+            max-height: 220px;
+            object-fit: contain;
+        }
+
+        @media (max-width: 768px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -238,9 +349,21 @@
     <div class="container mb-5">
         <div class="page-header">
             <div class="py-3 px-4 border border-dark border-2 d-inline-block">
-                <h2 class="page-title m-0">Student Dashboard</h2>
+                <h2 class="page-title m-0">Welcome, {{ student.name }}</h2>
             </div>
         </div>
+
+        <section class="dashboard-hero">
+            <div class="hero-content">
+                <div class="hero-copy">
+                    <h3>Student Dashboard</h3>
+                    <p>Track your profile, compatibility progress, and room assignment status from one place.</p>
+                </div>
+                <div class="hero-image-wrap">
+                    <img src="{{ url_for('static', filename='assets/bunk-bed.png') }}" alt="Student dashboard illustration">
+                </div>
+            </div>
+        </section>
 
         <div class="row g-4">
             <div class="col-md-6">
@@ -319,7 +442,9 @@
 
 
             <form action="/update_preferences" method="GET">
-                <button type="submit" class="btn btn-primary btn-update">Update Preferences</button>
+                <button type="submit" class="btn btn-outline-primary btn-home">
+                    <span><i class="fa-solid fa-sliders me-2"></i>Update Preferences</span>
+                </button>
             </form>
             <a href="/" class="btn btn-outline-dark btn-home"><span><i class="fa-solid fa-arrow-left me-2"></i>Home</span></a>
         </div>

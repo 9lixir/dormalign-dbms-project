@@ -264,6 +264,103 @@
         .section-heading-wrap.visible {
             animation: fadeUp 0.5s ease forwards;
         }
+
+        :root {
+            --bg: #edf3ff;
+            --panel: #ffffff;
+            --line: #c8d9ff;
+            --ink: #112245;
+            --blue: #1d4ed8;
+            --cyan: #0891b2;
+        }
+
+        body {
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--bg);
+        }
+
+        .hero-section {
+            background: transparent;
+            border-bottom: none;
+            padding-top: 70px;
+        }
+
+        .hero-title-box {
+            border: none !important;
+            border-radius: 22px;
+            padding: 38px 34px !important;
+            color: #fff;
+            background: linear-gradient(115deg, #1d4ed8, #0ea5e9);
+            box-shadow: 0 20px 40px rgba(20, 40, 120, 0.2);
+        }
+
+        .hero-title-box h1 {
+            font-size: clamp(1.75rem, 4vw, 3.25rem);
+        }
+
+        .hero-subtitle-box {
+            border: 1px solid var(--line) !important;
+            border-radius: 14px;
+            background: #f8fbff;
+        }
+
+        .hero-subtitle-box p {
+            color: #385284 !important;
+            font-weight: 600;
+        }
+
+        .action-card,
+        .problem-statement-card,
+        .how-it-works-card {
+            border-color: var(--line);
+            box-shadow: 0 12px 24px rgba(26, 52, 128, 0.09);
+        }
+
+        .problem-item {
+            border-color: var(--line);
+            background: #f8fbff;
+        }
+
+        .problem-item:hover {
+            background: #eef5ff;
+            border-color: #9ec3ff;
+        }
+
+        .dot,
+        .step-number {
+            color: var(--blue);
+            background-color: var(--blue);
+        }
+
+        .btn-primary {
+            border-color: transparent;
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
+        }
+
+        .btn-outline-dark {
+            color: #1d4ed8;
+            border-color: #9ec3ff;
+            background: #f5f9ff;
+        }
+
+        .btn-outline-dark::before {
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
+        }
+
+        footer {
+            background: transparent !important;
+            border-top: none !important;
+        }
+
+        footer .border {
+            border-color: var(--line) !important;
+            border-radius: 12px;
+            background: #f8fbff;
+            color: #36527f;
+        }
     </style>
 </head>
 <body>
@@ -276,7 +373,6 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
                     {% if not user_type %}
                         <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
                         <li class="nav-item"><a class="btn btn-primary btn-custom ms-lg-3" href="/register">Sign Up</a></li>
@@ -392,7 +488,7 @@
                         </div>
                         <h5>Dashboard</h5>
                         <p>View your profile, preferences, and matched roommate details.</p>
-                        <a href="/dashboard" class="btn btn-primary btn-custom w-100">Go to Dashboard</a>
+                        <a href="/dashboard" class="btn btn-outline-dark btn-custom w-100"><span>Go to Dashboard</span></a>
                     </div>
                 </div>
                 <div class="col-md-4">
