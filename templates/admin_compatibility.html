@@ -205,7 +205,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Dashboard</a></li>
                     <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
                 </ul>
             </div>
@@ -228,8 +228,11 @@
                             <th><i class="fa-solid fa-user me-1" style="color:#8b5cf6;"></i>Student 2</th>
                             <th><i class="fa-solid fa-chart-bar me-1" style="color:#198754;"></i>Score</th>
                             <th><i class="fa-solid fa-calendar me-1" style="color:#aaa;"></i>Date</th>
+                            <th><i class="fa-solid fa-door-open me-1"></i>Room</th>
+                            <th><i class="fa-solid fa-circle-info me-1"></i>Status</th>
                             <th><i class="fa-solid fa-bolt me-1"></i>Action</th>
                         </tr>
+
                     </thead>
                     <tbody>
                         {% for row in scores %}
@@ -262,15 +265,24 @@
                                 </div>
                             </td>
                             <td class="date-cell">{{ row[4] }}</td>
-                                <td>
-                                    {% if not row[5] and not row[6] %}
-                                    <form method="POST" action="/admin/assign_roommates/{{ row[7] }}/{{ row[8] }}">
-                                        <button type="submit" class="btn btn-success btn-sm">Assign</button>
-                                    </form>
-                                    {% else %}
-                                    <span class="badge bg-secondary">Assigned</span>
-                                    {% endif %}
-                                </td>
+                            <td>{{ row[9] }}</td>
+                            <td>
+                                {% if row[10] == "Assigned" %}
+                                <span class="badge bg-secondary">Assigned</span>
+                                {% else %}
+                                <span class="badge bg-warning text-dark">Open</span>
+                                {% endif %}
+                            </td>
+                        <td>
+                            {% if row[10] == "Open" %}
+                            <form method="POST" action="/admin/assign_roommates/{{ row[7] }}/{{ row[8] }}">
+                                <button type="submit" class="btn btn-success btn-sm">Assign</button>
+                            </form>
+                            {% else %}
+                            <span class="badge bg-secondary">Assigned</span>
+                            {% endif %}
+                        </td>
+
                         </tr>
                         {% endfor %}
                     </tbody>
