@@ -181,13 +181,16 @@
         .actions-wrap {
             opacity: 0;
             animation: fadeUp 0.5s ease 0.45s forwards;
+            flex-wrap: wrap;
         }
 
         .btn-update {
-            border-radius: 8px;
-            padding: 10px 25px;
-            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 700;
             animation: subtlePulse 2.5s ease-in-out infinite;
+            border: 1px solid transparent;
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
         }
         @keyframes subtlePulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(13,110,253,0.35); }
@@ -195,18 +198,19 @@
         }
 
         .btn-home {
-            border-radius: 8px;
-            padding: 10px 25px;
-            font-weight: 600;
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 700;
             position: relative;
             overflow: hidden;
             transition: color 0.3s;
+            border-width: 1px;
         }
         .btn-home::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: #212529;
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
             transform: scaleX(0);
             transform-origin: left;
             transition: transform 0.3s ease;
@@ -215,6 +219,20 @@
         .btn-home:hover::before { transform: scaleX(1); }
         .btn-home:hover { color: white !important; }
         .btn-home span { position: relative; z-index: 1; }
+
+        .actions-wrap .btn-outline-success,
+        .actions-wrap .btn-outline-info,
+        .actions-wrap .btn-outline-primary {
+            color: #1d4ed8;
+            border-color: #9ec3ff;
+            background: #f5f9ff;
+        }
+
+        .actions-wrap .btn-outline-dark {
+            color: #1a2c55;
+            border-color: #b6c8eb;
+            background: #f8fbff;
+        }
     </style>
 </head>
 <body>

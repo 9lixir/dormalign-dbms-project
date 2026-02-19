@@ -4,46 +4,229 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DormAlign | Room Assignment</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --page-bg: #edf3ff;
+            --card-bg: #ffffff;
+            --ink: #102042;
+            --muted: #5d6d93;
+            --line: #c9d9ff;
+            --blue: #1d4ed8;
+            --cyan: #0891b2;
+            --good: #0f9d58;
+        }
+
+        body {
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--page-bg);
+        }
+
+        .back-btn {
+            border-radius: 999px;
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--blue);
+            font-weight: 700;
+            padding: 10px 16px;
+            text-decoration: none;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.12);
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+
+        .assign-shell {
+            background: var(--card-bg);
+            border: 1px solid #d6e2ff;
+            border-radius: 22px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(20, 40, 120, 0.14);
+        }
+
+        .assign-hero {
+            background: linear-gradient(115deg, #1d4ed8, #0ea5e9);
+            padding: 26px 28px 22px;
+            color: #f8fbff;
+        }
+
+        .assign-hero h3 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 800;
+        }
+
+        .assign-content {
+            padding: 20px;
+            background: #f8fbff;
+        }
+
+        .state-good {
+            color: var(--good);
+            font-weight: 800;
+        }
+
+        .info-block {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            box-shadow: 0 8px 20px rgba(26, 52, 128, 0.09);
+        }
+
+        .info-label {
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.7px;
+            font-size: 0.78rem;
+            color: var(--muted);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .room-number-pill {
+            border-radius: 16px;
+            padding: 18px 16px;
+            text-align: center;
+            font-size: 3rem;
+            line-height: 1;
+            font-weight: 800;
+            color: #fff;
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
+            box-shadow: 0 12px 25px rgba(14, 81, 190, 0.3);
+        }
+
+        .hostel-value, .date-value {
+            margin: 0;
+            font-weight: 800;
+            font-size: 1.8rem;
+            color: #1e3769;
+        }
+
+        .roommate-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        .roommate-item {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-weight: 700;
+            background: #f2f7ff;
+            color: #19305e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: linear-gradient(115deg, #1d4ed8, #0ea5e9);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+            flex-shrink: 0;
+        }
+
+        .empty-state {
+            background: #fff;
+            border: 1px dashed #9eb9ef;
+            border-radius: 16px;
+            padding: 28px 24px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        .note-box {
+            margin-top: 14px;
+            border: 1px solid var(--line);
+            background: #f2f7ff;
+            border-radius: 14px;
+            padding: 12px 14px;
+            color: #1e3769;
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .note-box strong {
+            color: #1d4ed8;
+        }
+
+        @media (max-width: 768px) {
+            .assign-hero h3 {
+                font-size: 1.55rem;
+            }
+
+            .assign-content {
+                padding: 14px;
+            }
+
+            .room-number-pill {
+                font-size: 2.2rem;
+            }
+
+            .hostel-value, .date-value {
+                font-size: 1.35rem;
+            }
+        }
+    </style>
 </head>
-<body class="bg-light">
+<body>
     <div class="container py-4">
-        <a href="/dashboard" class="btn btn-outline-dark btn-sm mb-3">&larr; Back to Dashboard</a>
+        <a href="/dashboard" class="back-btn">&larr; Back to Dashboard</a>
 
-        <div class="card shadow-sm">
-            <div class="card-body">
-                <h3 class="mb-1">Room Assignment Result</h3>
+        <div class="assign-shell">
+            <div class="assign-hero">
+                <h3>Room Assignment Result</h3>
+            </div>
+            <div class="assign-content">
                 {% if assignment %}
-                <p class="text-success mb-3">Your room has been assigned.</p>
-                <div class="border rounded p-3 mb-3 bg-white">
-                    <small class="text-muted d-block mb-1">Assigned Room Number</small>
-                    <h1 class="m-0">{{ assignment.room_number }}</h1>
+                <p class="state-good mb-3">Your room has been assigned.</p>
+
+                <div class="info-block">
+                    <small class="info-label">Assigned Room Number</small>
+                    <div class="room-number-pill">{{ assignment.room_number }}</div>
                 </div>
 
-                <div class="border rounded p-3 mb-3 bg-white">
-                    <small class="text-muted d-block mb-1">Hostel Name</small>
-                    <h5 class="m-0">{{ assignment.hostel_name }}</h5>
+                <div class="info-block">
+                    <small class="info-label">Hostel Name</small>
+                    <h5 class="hostel-value">{{ assignment.hostel_name }}</h5>
                 </div>
 
-                <div class="border rounded p-3 mb-3 bg-white">
-                    <small class="text-muted d-block mb-2">Roommates</small>
+                <div class="info-block">
+                    <small class="info-label">Roommates</small>
                     {% if assignment.roommates %}
-                    <ul class="mb-0">
+                    <ul class="roommate-list">
                         {% for mate in assignment.roommates %}
-                        <li>{{ mate }}</li>
+                        <li class="roommate-item"><span class="dot"></span>{{ mate }}</li>
                         {% endfor %}
                     </ul>
                     {% else %}
-                    <p class="mb-0">No roommates (single occupancy).</p>
+                    <p class="mb-0 fw-bold">No roommates (single occupancy).</p>
                     {% endif %}
                 </div>
 
-                <div class="border rounded p-3 bg-white">
-                    <small class="text-muted d-block mb-1">Assigned Date</small>
-                    <h6 class="m-0">{{ assignment.assigned_date }}</h6>
+                <div class="info-block">
+                    <small class="info-label">Assigned Date</small>
+                    <h6 class="date-value">{{ assignment.assigned_date }}</h6>
+                </div>
+
+                <div class="note-box">
+                    <strong>Note:</strong> Please contact hostel administration for room keys and move-in procedures.
                 </div>
                 {% else %}
-                <p class="text-muted mb-0">No room assigned yet. Please wait for admin allocation.</p>
+                <div class="empty-state">
+                    No room assigned yet. Please wait for admin allocation.
+                </div>
                 {% endif %}
             </div>
         </div>
