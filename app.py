@@ -9,6 +9,16 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
+import uuid  # Generates unique file names so uploads never collide
+
+ALLOWED_PROFILE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}  # Allowed image types
+PROFILE_UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "profile_pictures")  # folger path
+os.makedirs(PROFILE_UPLOAD_FOLDER, exist_ok=True)  # Creates folder if it does not exist
+app.config["MAX_CONTENT_LENGTH"] = 3 * 1024 * 1024  # Max upload size = 3 MB
+
+def allowed_profile_image(filename):  # Small validator for uploaded file names
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_PROFILE_EXTENSIONS  # True only for allowed extensions
+
 
 def get_db_connection():
     database_url = os.environ.get("DB_URL")
@@ -78,24 +88,40 @@ def home():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
+    error = None
+
     if request.method == "POST":
-        username = request.form["username"]
+        username = request.form["username"].strip()
+        email = request.form["email"].strip()
         password = generate_password_hash(request.form["password"])
-        email = request.form["email"]
 
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO users (username, password,email) VALUES (%s, %s,%s)",
-            (username, password,email)
-        )
-        conn.commit()
+
+        # Check duplicate username
+        cur.execute("SELECT 1 FROM users WHERE username = %s", (username,))
+        if cur.fetchone():
+            error = "Username already exists. Please choose another."
+        else:
+            # Check duplicate email
+            cur.execute("SELECT 1 FROM users WHERE email = %s", (email,))
+            if cur.fetchone():
+                error = "Email already registered. Please use another."
+            else:
+                cur.execute(
+                    "INSERT INTO users (username, password, email) VALUES (%s, %s, %s)",
+                    (username, password, email)
+                )
+                conn.commit()
+                cur.close()
+                conn.close()
+                return redirect("/login")
+
         cur.close()
         conn.close()
 
-        return redirect("/login")
+    return render_template("register.html", error=error)
 
-    return render_template("register.html")
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -313,6 +339,108 @@ def update_preferences():
     cur.close()
     conn.close()
     return render_template("update_preferences.html", pref=pref)
+
+@app.route("/profile/edit", methods=["GET", "POST"])
+def edit_profile():  
+    if "user_id" not in session:  # Only logged-in users can edit profile.
+        return redirect("/login")  
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(  # Load current profile values
+        "SELECT username, email, profile_picture FROM users WHERE id = %s",
+        (session["user_id"],)
+    )
+    row = cur.fetchone()
+    if not row:
+        cur.close()
+        conn.close()
+        session.clear()
+        return redirect("/login")#force login
+    
+    user = {  # Data shown in form fields
+        "username": row[0],  
+        "email": row[1],  
+        "profile_picture": row[2]  
+    }
+    errors = []
+    updated = request.args.get("updated") == "1"
+
+    if request.method == "POST":  # Form was submitted.
+        username = request.form.get("username", "").strip() 
+        email = request.form.get("email", "").strip() 
+        new_password = request.form.get("password", "")  
+        profile_file = request.files.get("profile_picture")  
+        next_picture = user["profile_picture"] 
+        next_filename = None 
+
+        if not username:  # Validate username and email required.
+            errors.append("Username is required.")  
+        if not email:  
+            errors.append("Email is required.")  
+
+        cur.execute(  # Check username uniqueness except current user ko
+            "SELECT 1 FROM users WHERE username = %s AND id <> %s",
+            (username, session["user_id"])
+        )
+
+        if cur.fetchone():  # Username already used by someone else
+            errors.append("That username is already taken.")  
+
+        cur.execute(  # Check email uniqueness except current user
+            "SELECT 1 FROM users WHERE email = %s AND id <> %s",
+            (email, session["user_id"])
+        )
+        if cur.fetchone():  # Email already used by someone else
+            errors.append("That email is already registered.")  
+        
+        if profile_file and profile_file.filename:  # Only validate file if selected
+            if not allowed_profile_image(profile_file.filename):  # Extension check
+                errors.append("Image must be png, jpg, jpeg, gif, or webp.")  
+            else:
+                ext = os.path.splitext(profile_file.filename)[1].lower()  # Keep original ext
+                next_filename = f"user_{session['user_id']}_{uuid.uuid4().hex}{ext}"  # Unique
+                next_picture = f"uploads/profile_pictures/{next_filename}" 
+        if not errors:  # Continue only if validation passed.
+            if next_filename:  # Save uploaded image if provided.
+                profile_file.save(os.path.join(PROFILE_UPLOAD_FOLDER, next_filename))  # Write file to disk.
+
+            if new_password:  # Update password only when user typed one.
+                hashed_password = generate_password_hash(new_password)  # Hash securely.
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET username = %s, email = %s, password = %s, profile_picture = %s
+                    WHERE id = %s
+                    """,
+                    (username, email, hashed_password, next_picture, session["user_id"])
+                )
+            else:  # Keep old password if password field was blank.
+                cur.execute(
+                    """
+                    UPDATE users
+                    SET username = %s, email = %s, profile_picture = %s
+                    WHERE id = %s
+                    """,
+                    (username, email, next_picture, session["user_id"])
+                )
+
+            conn.commit()  # Save DB changes.
+            cur.close()  # Close cursor.
+            conn.close()  # Close connection.
+            return redirect("/profile/edit?updated=1")  # PRG pattern to prevent re-submit.
+
+        user["username"] = username  # Refill form after errors.
+        user["email"] = email  # Refill form after errors.
+        user["profile_picture"] = next_picture  # Show current/new image path.
+
+    cur.close()  # Close cursor for GET or failed POST.
+    conn.close()  # Close connection for GET or failed POST.
+    return render_template("edit_profile.html", user=user, errors=errors, updated=updated)  # Render page.
+        
+
+        
+
+
 
 @app.route("/admin/calculate_compatibility")
 def generate_compatibility():

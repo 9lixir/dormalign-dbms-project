@@ -34,26 +34,3 @@ BEGIN
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
     END IF;
 END $$;
-
---email column added
-ALTER TABLE users
-ADD COLUMN IF NOT EXISTS email VARCHAR(200) UNIQUE NOT NULL;
-
--- added role column to users, for roles of admin and student, default will be student
-ALTER TABLE users
-ADD COLUMN IF NOT EXISTS role VARCHAR(20) DEFAULT 'student';
-
-
-
--- create an admin (values changed in remote device accoringly)
-INSERT INTO users (username, password, role, email) 
-VALUES ('admin_name', 'password', 'admin', 'email@gmail.com');
-
---update the role of admin
-UPDATE users
-SET role = 'admin'
-WHERE username = 'admin_name'; 
-
---for tracking which roommate has been assigned:
-ALTER TABLE roommate_request
-ADD COLUMN IF NOT EXISTS assigned_roommate_id INT REFERENCES student(student_id);

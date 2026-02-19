@@ -173,6 +173,10 @@
             <p class="register-subtitle">Join DormAlign and find your perfect roommate</p>
 
             <hr class="divider">
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+
 
             <form method="POST">
                 <div class="field-wrap mb-3">
