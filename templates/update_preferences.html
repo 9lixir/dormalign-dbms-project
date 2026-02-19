@@ -4,270 +4,213 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DormAlign | Update Preferences</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <style>
+        :root {
+            --bg: #edf3ff;
+            --card: #ffffff;
+            --ink: #132447;
+            --muted: #5b6b8f;
+            --line: #c8d9ff;
+            --blue: #1d4ed8;
+            --cyan: #0891b2;
+        }
+
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
+            font-family: "Manrope", sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--bg);
         }
 
-        .navbar {
-            border-bottom: 1px solid #eee;
-            animation: slideDown 0.5s ease forwards;
-        }
-        @keyframes slideDown {
-            from { transform: translateY(-100%); opacity: 0; }
-            to   { transform: translateY(0);     opacity: 1; }
-        }
-        .navbar-brand { transition: letter-spacing 0.3s ease; }
-        .navbar-brand:hover { letter-spacing: 2px; }
-
-        .nav-link {
-            position: relative;
-            transition: color 0.2s;
-        }
-        .nav-link::after {
-            content: '';
-            position: absolute;
-            left: 0; bottom: 0;
-            width: 0; height: 2px;
-            background: #0d6efd;
-            transition: width 0.25s ease;
-        }
-        .nav-link:hover::after { width: 100%; }
-
-        .page-header {
-            padding: 50px 0 30px;
-            animation: fadeUp 0.6s cubic-bezier(.22,1,.36,1) 0.1s both;
-        }
-        .page-title {
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: -1px;
-        }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0);    }
-        }
-
-        .form-card {
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 12px;
+        .shell {
+            max-width: 760px;
+            margin: 34px auto;
+            background: var(--card);
+            border: 1px solid #d6e2ff;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-            animation: fadeUp 0.6s cubic-bezier(.22,1,.36,1) 0.2s both;
-            margin-bottom: 60px;
-            max-width: 680px;
+            box-shadow: 0 20px 40px rgba(20, 40, 120, 0.14);
         }
 
-        .form-body {
-            padding: 36px 40px;
+        .hero {
+            padding: 26px;
+            background: linear-gradient(115deg, #1d4ed8, #0ea5e9);
+            color: #f8fbff;
+            text-align: center;
         }
 
-        .section-divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin: 0 0 24px;
-            opacity: 0;
-        }
-        .section-divider.visible {
-            animation: fadeUp 0.4s ease forwards;
-        }
-        .section-divider-label {
-            font-size: 0.72rem;
+        .hero h2 {
+            margin: 0;
+            font-size: 2rem;
             font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: #999;
-            white-space: nowrap;
-        }
-        .section-divider-line {
-            flex: 1;
-            height: 1px;
-            background: #edf2f7;
-        }
-        .section-divider-icon {
-            width: 30px;
-            height: 30px;
-            border-radius: 8px;
-            background: #f0f6ff;
-            color: #0d6efd;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            flex-shrink: 0;
         }
 
-        .field-wrap {
-            opacity: 0;
-            transform: translateX(-14px);
+        .hero p {
+            margin: 8px 0 0;
+            color: #deecff;
+            font-weight: 600;
         }
-        .field-wrap.visible {
-            animation: slideRight 0.4s ease forwards;
+
+        .form-wrap {
+            background: #f8fbff;
+            padding: 22px;
         }
-        @keyframes slideRight {
-            to { opacity: 1; transform: translateX(0); }
+
+        .section-title {
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-size: 0.75rem;
+            color: var(--muted);
+            font-weight: 800;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .field {
+            margin-bottom: 14px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 6px 16px rgba(26, 52, 128, 0.08);
         }
 
         .form-label {
-            font-size: 0.78rem;
-            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.6px;
-            color: #666;
-            margin-bottom: 6px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: var(--muted);
+            margin-bottom: 8px;
         }
 
         .form-select {
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-            padding: 10px 14px;
-            font-size: 0.9rem;
-            font-family: 'Inter', sans-serif;
-            transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            padding: 10px 11px;
+            font-weight: 600;
         }
+
         .form-select:focus {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 3px rgba(13,110,253,0.12);
-            transform: translateY(-1px);
+            border-color: #82b0ff;
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.16);
         }
 
-        .submit-wrap {
-            opacity: 0;
-            animation: fadeUp 0.5s ease 0.3s forwards;
-            margin-top: 32px;
+        .actions {
+            display: grid;
+            gap: 10px;
+            margin-top: 20px;
         }
 
-        .btn-submit {
-            border-radius: 8px;
-            padding: 12px 25px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            width: 100%;
-            animation: subtlePulse 2.5s ease-in-out infinite;
+        .btn {
+            border-radius: 10px;
+            font-weight: 800;
+            padding: 11px 14px;
+            border-width: 1px;
         }
-        @keyframes subtlePulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(13,110,253,0.35); }
-            50%       { box-shadow: 0 0 0 8px rgba(13,110,253,0);   }
+
+        .btn-save {
+            color: #fff;
+            border-color: transparent;
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
+        }
+
+        .btn-save:hover {
+            color: #fff;
+            filter: brightness(1.06);
         }
 
         .btn-back {
-            border-radius: 8px;
-            padding: 10px 25px;
-            font-weight: 600;
-            position: relative;
-            overflow: hidden;
-            transition: color 0.3s;
-            margin-top: 12px;
-            width: 100%;
+            color: #1d4ed8;
+            border-color: #a9c7ff;
+            background: #f2f7ff;
         }
-        .btn-back::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: #212529;
-            transform: scaleX(0);
-            transform-origin: left;
-            transition: transform 0.3s ease;
-            z-index: 0;
+
+        .btn-back:hover {
+            color: #fff;
+            background: #1d4ed8;
+            border-color: #1d4ed8;
         }
-        .btn-back:hover::before { transform: scaleX(1); }
-        .btn-back:hover { color: white !important; }
-        .btn-back span { position: relative; z-index: 1; }
+
+        @media (max-width: 768px) {
+            .hero h2 {
+                font-size: 1.6rem;
+            }
+
+            .form-wrap {
+                padding: 14px;
+            }
+        }
     </style>
 </head>
 <body>
-
-    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top">
-        <div class="container">
-            <a class="navbar-brand fw-bold text-primary" href="/">DORM<span class="text-dark">ALIGN</span></a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-                    <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
-                </ul>
+    <div class="container py-4">
+        <div class="shell">
+            <div class="hero">
+                <h2>Lifestyle Preferences</h2>
+                <p>Set your preferences to find the most compatible roommate</p>
             </div>
-        </div>
-    </nav>
 
-    <div class="container">
-        <div class="page-header">
-            <div class="py-3 px-4 border border-dark border-2 d-inline-block">
-                <h2 class="page-title m-0">Update Preferences</h2>
-            </div>
-        </div>
-
-        <div class="form-card">
-            <div class="form-body">
+            <div class="form-wrap">
                 <form method="POST">
+                    <div class="section-title"><i class="fa-solid fa-sliders"></i>Preference Form</div>
 
-                    <div class="section-divider mb-4">
-                        <div class="section-divider-icon"><i class="fa-solid fa-sliders"></i></div>
-                        <span class="section-divider-label">Lifestyle Preferences</span>
-                        <div class="section-divider-line"></div>
-                    </div>
-
-                    <div class="field-wrap mb-3">
-                        <label class="form-label"><i class="fa-solid fa-moon me-1" style="color:#0d6efd;"></i> Sleep Schedule</label>
+                    <div class="field">
+                        <label class="form-label"><i class="fa-solid fa-moon me-1" style="color:#1d4ed8;"></i> Sleep Schedule</label>
                         <select name="sleep_time" class="form-select">
-                            <option value="Early bird" {% if pref and pref[1] == "Early bird" %}selected{% endif %}>Early bird (10PM – 6AM)</option>
-                            <option value="Night owl" {% if pref and pref[1] == "Night owl" %}selected{% endif %}>Night owl (1AM – 9AM)</option>
+                            <option value="Early bird" {% if pref and pref[1] == "Early bird" %}selected{% endif %}>Early bird (10PM - 6AM)</option>
+                            <option value="Night owl" {% if pref and pref[1] == "Night owl" %}selected{% endif %}>Night owl (1AM - 9AM)</option>
                             <option value="Flexible" {% if pref and pref[1] == "Flexible" %}selected{% endif %}>Flexible / Irregular</option>
                         </select>
                     </div>
 
-                    <div class="field-wrap mb-3">
-                        <label class="form-label"><i class="fa-solid fa-broom me-1" style="color:#f59e0b;"></i> Cleanliness Level</label>
+                    <div class="field">
+                        <label class="form-label"><i class="fa-solid fa-broom me-1" style="color:#d97706;"></i> Cleanliness Level</label>
                         <select name="cleanliness_level" class="form-select">
                             {% for i in range(1,6) %}
                             <option value="{{ i }}" {% if pref and pref[2]|int == i %}selected{% endif %}>
-                                {% if i == 1 %}1 – Very messy
-                                {% elif i == 2 %}2 – Messy
-                                {% elif i == 3 %}3 – Average
-                                {% elif i == 4 %}4 – Clean
-                                {% elif i == 5 %}5 – Very clean{% endif %}
+                                {% if i == 1 %}1 - Very messy
+                                {% elif i == 2 %}2 - Messy
+                                {% elif i == 3 %}3 - Average
+                                {% elif i == 4 %}4 - Clean
+                                {% elif i == 5 %}5 - Very clean{% endif %}
                             </option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div class="field-wrap mb-3">
-                        <label class="form-label"><i class="fa-solid fa-volume-high me-1" style="color:#0ea5e9;"></i> Noise Tolerance</label>
+                    <div class="field">
+                        <label class="form-label"><i class="fa-solid fa-volume-high me-1" style="color:#0891b2;"></i> Noise Tolerance</label>
                         <select name="noise_tolerance" class="form-select">
                             {% for i in range(1,6) %}
                             <option value="{{ i }}" {% if pref and pref[3]|int == i %}selected{% endif %}>
-                                {% if i == 1 %}1 – Cannot tolerate any noise
-                                {% elif i == 2 %}2 – Low tolerance
-                                {% elif i == 3 %}3 – Average
-                                {% elif i == 4 %}4 – High tolerance
-                                {% elif i == 5 %}5 – Can tolerate loud noise{% endif %}
+                                {% if i == 1 %}1 - Cannot tolerate any noise
+                                {% elif i == 2 %}2 - Low tolerance
+                                {% elif i == 3 %}3 - Average
+                                {% elif i == 4 %}4 - High tolerance
+                                {% elif i == 5 %}5 - Can tolerate loud noise{% endif %}
                             </option>
                             {% endfor %}
                         </select>
                     </div>
 
-                    <div class="field-wrap mb-3">
-                        <label class="form-label"><i class="fa-solid fa-user-group me-1" style="color:#8b5cf6;"></i> Guest Preference</label>
+                    <div class="field">
+                        <label class="form-label"><i class="fa-solid fa-user-group me-1" style="color:#1d4ed8;"></i> Guest Preference</label>
                         <select name="guest_preference" class="form-select">
-                            <option value="True" {% if pref and pref[4] %}selected{% endif %}>Yes – guests are welcome</option>
-                            <option value="False" {% if pref and not pref[4] %}selected{% endif %}>No – prefer no guests</option>
+                            <option value="True" {% if pref and pref[4] %}selected{% endif %}>Yes - guests are welcome</option>
+                            <option value="False" {% if pref and not pref[4] %}selected{% endif %}>No - prefer no guests</option>
                         </select>
                     </div>
 
-                    <div class="field-wrap mb-3">
-                        <label class="form-label"><i class="fa-solid fa-book-open me-1" style="color:#198754;"></i> Study Style</label>
+                    <div class="field">
+                        <label class="form-label"><i class="fa-solid fa-book-open me-1" style="color:#0f9d58;"></i> Study Style</label>
                         <select name="study_style" class="form-select">
                             <option value="Quiet solo" {% if pref and pref[5] == "Quiet solo" %}selected{% endif %}>Quiet solo</option>
                             <option value="Group study" {% if pref and pref[5] == "Group study" %}selected{% endif %}>Group study</option>
@@ -276,35 +219,13 @@
                         </select>
                     </div>
 
-                    <div class="submit-wrap">
-                        <button type="submit" class="btn btn-primary btn-submit">
-                            <i class="fa-solid fa-floppy-disk me-2"></i>Save Changes
-                        </button>
-                        <a href="/dashboard" class="btn btn-outline-dark btn-back">
-                            <span><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</span>
-                        </a>
+                    <div class="actions">
+                        <button type="submit" class="btn btn-save"><i class="fa-solid fa-floppy-disk me-2"></i>Save Changes</button>
+                        <a href="/dashboard" class="btn btn-back"><i class="fa-solid fa-arrow-left me-2"></i>Back to Dashboard</a>
                     </div>
-
                 </form>
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, { threshold: 0.1 });
-
-        document.querySelectorAll('.field-wrap, .section-divider').forEach((el, i) => {
-            el.style.animationDelay = (i * 0.07) + 's';
-            observer.observe(el);
-        });
-    </script>
 </body>
 </html>

@@ -233,6 +233,64 @@
             border-color: #b6c8eb;
             background: #f8fbff;
         }
+
+        :root {
+            --bg: #edf3ff;
+            --panel: #ffffff;
+            --line: #c8d9ff;
+            --ink: #112245;
+            --blue: #1d4ed8;
+            --cyan: #0891b2;
+        }
+
+        body {
+            color: var(--ink);
+            background:
+                radial-gradient(900px 500px at 100% -20%, #d9f0ff 0%, rgba(217,240,255,0) 60%),
+                radial-gradient(800px 450px at -10% 120%, #c7d9ff 0%, rgba(199,217,255,0) 60%),
+                var(--bg);
+        }
+
+        .page-header .border {
+            border: none !important;
+            border-radius: 18px;
+            background: linear-gradient(115deg, #1d4ed8, #0ea5e9);
+            color: #fff;
+            box-shadow: 0 16px 32px rgba(20, 40, 120, 0.2);
+        }
+
+        .page-title {
+            color: #fff;
+        }
+
+        .dash-card {
+            border-color: var(--line);
+            box-shadow: 0 12px 24px rgba(26, 52, 128, 0.09);
+        }
+
+        .card-header-custom {
+            color: #30507f;
+            border-bottom-color: #d8e6ff;
+        }
+
+        .info-row,
+        .pref-item {
+            border-bottom-color: #dce8ff;
+        }
+
+        .btn-update {
+            background: linear-gradient(115deg, #1d4ed8, #0891b2);
+            border-color: transparent;
+        }
+
+        .actions-wrap .btn-outline-success,
+        .actions-wrap .btn-outline-info,
+        .actions-wrap .btn-outline-primary,
+        .actions-wrap .btn-outline-dark {
+            border-color: #9ec3ff;
+            color: #1d4ed8;
+            background: #f5f9ff;
+        }
     </style>
 </head>
 <body>
