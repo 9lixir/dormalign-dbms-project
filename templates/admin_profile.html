@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DormAlign | Admin Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-expand-lg bg-white border-bottom">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="/">DormAlign</a>
+        <div class="ms-auto d-flex gap-2">
+            <a class="btn btn-outline-primary btn-sm" href="/admin/dashboard">Admin Dashboard</a>
+            <a class="btn btn-outline-secondary btn-sm" href="/admin/view/compatibility">Scores</a>
+            <a class="btn btn-outline-danger btn-sm" href="/logout">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-4">
+    <h3 class="mb-4">Admin Profile</h3>
+
+    {% if updated %}
+    <div class="alert alert-success">Profile updated successfully.</div>
+    {% endif %}
+
+    {% if errors %}
+    <div class="alert alert-danger">
+        {% for error in errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    {% if admin.profile_picture %}
+                    <img src="{{ url_for('static', filename=admin.profile_picture) }}" class="rounded-circle mb-3" style="width:130px;height:130px;object-fit:cover;" alt="Admin photo">
+                    {% else %}
+                    <div class="rounded-circle bg-secondary text-white d-inline-flex align-items-center justify-content-center mb-3" style="width:130px;height:130px;font-size:36px;">
+                        {{ admin.username[0] | upper }}
+                    </div>
+                    {% endif %}
+                    <h5 class="mb-1">{{ admin.username }}</h5>
+                    <div class="text-muted">{{ admin.email }}</div>
+                    <div class="mt-2 badge text-bg-dark">Administrator</div>
+                    <div class="d-grid gap-2 mt-3">
+                        <a href="#edit-form" class="btn btn-primary btn-sm">Edit Profile</a>
+                        <a href="#password-field" class="btn btn-outline-dark btn-sm">Change Password</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <form id="edit-form" method="POST" enctype="multipart/form-data" class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="mb-3">Update Admin Account</h5>
+
+                    <label class="form-label">Username</label>
+                    <input name="username" type="text" class="form-control mb-3" value="{{ admin.username }}" required>
+
+                    <label class="form-label">Email</label>
+                    <input name="email" type="email" class="form-control mb-3" value="{{ admin.email }}" required>
+
+                    <label id="password-field" class="form-label">New Password (optional)</label>
+                    <input name="password" type="password" class="form-control mb-3" placeholder="Leave blank to keep current password">
+
+                    <label class="form-label">Profile Picture (optional)</label>
+                    <input name="profile_picture" type="file" class="form-control mb-3" accept=".png,.jpg,.jpeg,.gif,.webp">
+
+                    <button class="btn btn-primary" type="submit">Save Changes</button>
+                    <a class="btn btn-outline-secondary" href="/admin/dashboard">Back to Dashboard</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

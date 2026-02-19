@@ -281,6 +281,9 @@
                         <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
                         <li class="nav-item"><a class="btn btn-primary btn-custom ms-lg-3" href="/register">Sign Up</a></li>
                     {% elif user_type == 'admin' %}
+                        <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Admin Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/profile">Admin Profile</a></li>
+
                         <li class="nav-item"><a class="nav-link" href="/admin/view/compatibility">Scores</a></li>
                         <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
                     {% else %}
