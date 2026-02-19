@@ -317,6 +317,260 @@ def dashboard():
 
     return render_template("dashboard.html", student=student, preferences=preferences)
 
+
+@app.route("/student/compatibility")
+def student_compatibility():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    student_id = get_student_id_by_user_id(cur, session["user_id"])
+    if not student_id:
+        cur.close()
+        conn.close()
+        return redirect("/roommate")
+
+    cur.execute(
+        """
+        SELECT s.name, s.department, s.year
+        FROM student s
+        WHERE s.student_id = %s
+        """,
+        (student_id,)
+    )
+    me = cur.fetchone()
+
+    cur.execute(
+        """
+        SELECT assigned_roommate_id, COALESCE(request_status, ''), COALESCE(preferred_room_type, '')
+        FROM roommate_request
+        WHERE student_id = %s
+        ORDER BY request_id
+        LIMIT 1
+        """,
+        (student_id,)
+    )
+    my_request = cur.fetchone()
+    current_target_id = my_request[0] if my_request else None
+    current_status = (my_request[1] if my_request else "").lower()
+    preferred_room_type = (my_request[2] if my_request else "").lower()
+
+    cur.execute(
+        """
+        SELECT
+            other.student_id,
+            other.name,
+            other.department,
+            other.year,
+            c.compatibility_score
+        FROM compatibility_score c
+        JOIN student other
+          ON other.student_id = CASE
+                WHEN c.student1_id = %s THEN c.student2_id
+                ELSE c.student1_id
+             END
+        WHERE c.student1_id = %s OR c.student2_id = %s
+        ORDER BY c.compatibility_score DESC, other.name ASC
+        """,
+        (student_id, student_id, student_id)
+    )
+    rows = cur.fetchall()
+
+    cur.execute(
+        """
+        SELECT EXISTS(
+            SELECT 1 FROM room_assignment WHERE student_id = %s
+        )
+        """,
+        (student_id,)
+    )
+    has_room_assignment = bool(cur.fetchone()[0])
+
+    cur.close()
+    conn.close()
+
+    cards = []
+    for row in rows:
+        cards.append(
+            {
+                "student_id": row[0],
+                "name": row[1],
+                "department": row[2],
+                "year": row[3],
+                "score": row[4],
+                "request_sent": current_target_id == row[0] and current_status == "pending",
+            }
+        )
+
+    request_error = request.args.get("err")
+    request_ok = request.args.get("ok")
+    block_reason = None
+    if has_room_assignment:
+        block_reason = "You already have a room assigned."
+    elif preferred_room_type == "single":
+        block_reason = "Single-room preference is active; roommate requests are disabled."
+
+    current_user = {
+        "name": me[0] if me else "",
+        "department": me[1] if me else "",
+        "year": me[2] if me else "",
+    }
+
+    return render_template(
+        "student_compatibility.html",
+        current_user=current_user,
+        matches=cards,
+        block_reason=block_reason,
+        request_ok=request_ok,
+        request_error=request_error,
+    )
+
+
+@app.route("/student/send_request/<int:target_student_id>", methods=["POST"])
+def student_send_request(target_student_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    student_id = get_student_id_by_user_id(cur, session["user_id"])
+    if not student_id:
+        cur.close()
+        conn.close()
+        return redirect("/roommate")
+
+    if student_id == target_student_id:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=self_request")
+
+    cur.execute(
+        """
+        SELECT s1.hostel_id, s2.hostel_id
+        FROM student s1
+        JOIN student s2 ON s2.student_id = %s
+        WHERE s1.student_id = %s
+        """,
+        (target_student_id, student_id)
+    )
+    hostels = cur.fetchone()
+    if not hostels or hostels[0] != hostels[1]:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=hostel_mismatch")
+
+    cur.execute(
+        "SELECT EXISTS(SELECT 1 FROM room_assignment WHERE student_id = %s)",
+        (student_id,)
+    )
+    if cur.fetchone()[0]:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=already_assigned")
+
+    cur.execute(
+        """
+        SELECT COALESCE(preferred_room_type, '')
+        FROM roommate_request
+        WHERE student_id = %s
+        ORDER BY request_id
+        LIMIT 1
+        """,
+        (student_id,)
+    )
+    room_pref = cur.fetchone()
+    if room_pref and str(room_pref[0]).lower() == "single":
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=single_pref")
+
+    cur.execute(
+        """
+        UPDATE roommate_request
+        SET assigned_roommate_id = %s, request_status = 'Pending'
+        WHERE student_id = %s
+        """,
+        (target_student_id, student_id)
+    )
+    if cur.rowcount == 0:
+        cur.execute(
+            """
+            INSERT INTO roommate_request (student_id, preferred_room_type, request_status, assigned_roommate_id)
+            VALUES (%s, 'Double', 'Pending', %s)
+            """,
+            (student_id, target_student_id)
+        )
+
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect("/student/compatibility?ok=1")
+
+
+@app.route("/student/assignment")
+def student_assignment():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    student_id = get_student_id_by_user_id(cur, session["user_id"])
+    if not student_id:
+        cur.close()
+        conn.close()
+        return redirect("/roommate")
+
+    cur.execute(
+        """
+        SELECT
+            r.room_id,
+            r.room_number,
+            h.hostel_name,
+            ra.assigned_date
+        FROM room_assignment ra
+        JOIN room r ON r.room_id = ra.room_id
+        JOIN hostel h ON h.hostel_id = r.hostel_id
+        WHERE ra.student_id = %s
+        ORDER BY ra.assignment_id DESC
+        LIMIT 1
+        """,
+        (student_id,)
+    )
+    assignment = cur.fetchone()
+
+    roommates = []
+    if assignment:
+        cur.execute(
+            """
+            SELECT s.name
+            FROM room_assignment ra
+            JOIN student s ON s.student_id = ra.student_id
+            WHERE ra.room_id = %s
+              AND ra.student_id <> %s
+            ORDER BY s.name
+            """,
+            (assignment[0], student_id)
+        )
+        roommates = [r[0] for r in cur.fetchall()]
+
+    cur.close()
+    conn.close()
+
+    assignment_data = None
+    if assignment:
+        assignment_data = {
+            "room_number": assignment[1],
+            "hostel_name": assignment[2],
+            "assigned_date": assignment[3],
+            "roommates": roommates,
+        }
+
+    return render_template("student_assignment.html", assignment=assignment_data)
+
 @app.route("/update_preferences", methods=["GET", "POST"])
 def update_preferences():
     if "user_id" not in session:
