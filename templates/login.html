@@ -172,6 +172,9 @@
             <p class="login-subtitle">Sign in to access your roommate dashboard</p>
 
             <hr class="divider">
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
 
             <form method="POST">
                 <div class="field-wrap mb-3">
@@ -185,7 +188,9 @@
                 </div>
             </form>
 
-            <span class="register-link">Don't have an account? <a href="/register">Register here</a></span>
+          <span class="register-link">Don't have an account? <a href="/register">Register here</a></span>
+          <span class="register-link mt-2"><a href="/forgot-password">Forgot your password?</a></span> 
+           
         </div>
     </div>
 
