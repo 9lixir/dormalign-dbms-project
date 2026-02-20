@@ -3,11 +3,25 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Mail, Message
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
+
+# Mail config
+app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER")
+app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
+app.config["MAIL_USE_TLS"] = True
+app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
+app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
+app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER")
+
+mail = Mail(app)
+serializer = URLSafeTimedSerializer(app.secret_key)
+
 
 import uuid  # Generates unique file names so uploads never collide
 
@@ -191,23 +205,33 @@ def register():
             if cur.fetchone():
                 error = "Email already registered. Please use another."
             else:
+                # Insert user with is_verified = False
                 cur.execute(
-                    "INSERT INTO users (username, password, email) VALUES (%s, %s, %s)",
-                    (username, password, email)
+                    "INSERT INTO users (username, password, email, is_verified) VALUES (%s, %s, %s, %s)",
+                    (username, password, email, False)
                 )
                 conn.commit()
+
+                # Generate verification token and send email
+                token = serializer.dumps(email, salt="email-verify")
+                verify_url = f"http://127.0.0.1:5001/verify/{token}"
+
+                msg = Message("Verify your DormAlign account", recipients=[email])
+                msg.body = f"Hi {username},\n\nPlease verify your email by clicking this link:\n{verify_url}\n\nThis link expires in 1 hour.\n\n- DormAlign Team"
+                mail.send(msg)
+
                 cur.close()
                 conn.close()
-                return redirect("/login")
+                return redirect("/verify-pending")
 
         cur.close()
         conn.close()
 
     return render_template("register.html", error=error)
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
+    error = None
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
@@ -215,7 +239,7 @@ def login():
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, password FROM users WHERE username = %s",
+            "SELECT id, password, is_verified FROM users WHERE username = %s",
             (username,)
         )
         user = cur.fetchone()
@@ -223,16 +247,102 @@ def login():
         conn.close()
 
         if user and check_password_hash(user[1], password):
+            if not user[2]:  # is_verified is False
+                error = "Please verify your email before logging in."
+                return render_template("login.html", error=error)
             session["user_id"] = user[0]
             return redirect("/")
-        return redirect("/login")
+        error = "Invalid username or password."
+        return render_template("login.html", error=error)
 
-    return render_template("login.html")
-
+    return render_template("login.html", error=error)
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/login")
+
+@app.route("/verify-pending")
+def verify_pending():
+    return render_template("verify_pending.html")
+
+
+@app.route("/verify/<token>")
+def verify_email(token):
+    try:
+        email = serializer.loads(token, salt="email-verify", max_age=3600)
+    except SignatureExpired:
+        return render_template("login.html", error="Verification link has expired. Please register again.")
+    except BadSignature:
+        return render_template("login.html", error="Invalid verification link.")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET is_verified = TRUE WHERE email = %s",
+        (email,)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    return redirect("/login?verified=1")
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    message = None
+    error = None
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT username FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
+        cur.close()
+        conn.close()
+
+        if user:
+            token = serializer.dumps(email, salt="password-reset")
+            reset_url = f"http://127.0.0.1:5001/reset-password/{token}"
+            msg = Message("Reset your DormAlign password", recipients=[email])
+            msg.body = f"Hi {user[0]},\n\nClick this link to reset your password:\n{reset_url}\n\nThis link expires in 1 hour.\n\n- DormAlign Team"
+            mail.send(msg)
+        message = "If that email is registered, a reset link has been sent."
+
+    return render_template("forgot_password.html", message=message, error=error)
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    try:
+        email = serializer.loads(token, salt="password-reset", max_age=3600)
+    except SignatureExpired:
+        return render_template("login.html", error="Reset link has expired. Please try again.")
+    except BadSignature:
+        return render_template("login.html", error="Invalid reset link.")
+
+    error = None
+    if request.method == "POST":
+        new_password = request.form.get("password", "")
+        confirm_password = request.form.get("confirm_password", "")
+
+        if not new_password:
+            error = "Password cannot be empty."
+        elif new_password != confirm_password:
+            error = "Passwords do not match."
+        else:
+            hashed = generate_password_hash(new_password)
+            conn = get_db_connection()
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE users SET password = %s WHERE email = %s",
+                (hashed, email)
+            )
+            conn.commit()
+            cur.close()
+            conn.close()
+            return redirect("/login?reset=1")
+
+    return render_template("reset_password.html", token=token, error=error)
 
 @app.route("/roommate", methods=["GET", "POST"])
 def roommate():
