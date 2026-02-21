@@ -208,6 +208,13 @@
         .badge-assigned { background: #e5e7eb; color: #374151; }
         .badge-open { background: #fef3c7; color: #92400e; }
 
+        .sub-heading {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #1d3f84;
+            margin: 0;
+        }
+
         @media (max-width: 992px) {
             .admin-shell { display: block; }
             .admin-sidebar {
@@ -252,6 +259,41 @@
         <div class="mb-3">
             <a class="btn-soft" href="/admin/dashboard"><i class="fa-solid fa-arrow-left me-2"></i>Return to Dashboard</a>
         </div>
+
+        <section class="panel mb-3">
+            <div class="px-3 py-2 border-bottom" style="background:#fbfdff;">
+                <h2 class="sub-heading">Assigned Roommates</h2>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student 1</th>
+                            <th>Student 2</th>
+                            <th>Room</th>
+                            <th>Hostel</th>
+                            <th>Assigned Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pair in assigned_pairs %}
+                        <tr>
+                            <td>{{ pair[0] }}</td>
+                            <td>{{ pair[1] }}</td>
+                            <td>{{ pair[2] }}</td>
+                            <td>{{ pair[3] }}</td>
+                            <td>{{ pair[4] }}</td>
+                        </tr>
+                        {% endfor %}
+                        {% if not assigned_pairs %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No roommate pairs are currently assigned.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
         <section class="panel">
             <div class="table-wrap">

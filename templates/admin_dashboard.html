@@ -203,6 +203,58 @@
             background: linear-gradient(120deg, var(--blue), var(--purple));
         }
 
+        .panel-card {
+            border: 1px solid #d5e2ff;
+            border-radius: 16px;
+            background: #fff;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(19, 47, 130, 0.08);
+            margin-top: 14px;
+        }
+
+        .panel-head {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e5edff;
+            background: #fbfdff;
+            font-weight: 800;
+            color: #1a3c79;
+        }
+
+        .table-wrap { overflow-x: auto; }
+
+        .panel-table {
+            width: 100%;
+            min-width: 760px;
+            border-collapse: collapse;
+        }
+
+        .panel-table th,
+        .panel-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e7efff;
+            font-size: 0.9rem;
+        }
+
+        .panel-table th {
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.72rem;
+            color: #4c6696;
+            background: #f9fbff;
+        }
+
+        .status-pill {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 4px 9px;
+            font-size: 0.75rem;
+            font-weight: 800;
+        }
+
+        .status-assigned { background: #dcfce7; color: #166534; }
+        .status-waiting { background: #fef9c3; color: #854d0e; }
+        .status-unavailable { background: #fee2e2; color: #991b1b; }
+
 
         @media (max-width: 1200px) {
             .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -290,6 +342,49 @@
             </form>
             <a href="/admin/pending-requests" class="chip-btn"><i class="fa-solid fa-hourglass-half"></i>Pending Requests</a>
             <a href="/admin/rooms" class="chip-btn"><i class="fa-solid fa-door-open"></i>Manage Rooms</a>
+        </section>
+
+        <section class="panel-card">
+            <div class="panel-head">Single Room Requests</div>
+            <div class="table-wrap">
+                <table class="panel-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Hostel</th>
+                            <th>Request Status</th>
+                            <th>Room</th>
+                            <th>Assigned Date</th>
+                            <th>Allocation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in single_room_requests %}
+                        <tr>
+                            <td>{{ row[1] }} <span class="text-muted">(#{{ row[0] }})</span></td>
+                            <td>{{ row[2] }}</td>
+                            <td>{{ row[3] }}</td>
+                            <td>{{ row[4] if row[4] else '-' }}</td>
+                            <td>{{ row[5] if row[5] else '-' }}</td>
+                            <td>
+                                {% if row[6] == 'Assigned' %}
+                                <span class="status-pill status-assigned">Assigned</span>
+                                {% elif row[6] == 'Waiting' %}
+                                <span class="status-pill status-waiting">Waiting</span>
+                                {% else %}
+                                <span class="status-pill status-unavailable">No Single Room</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not single_room_requests %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No students currently requested a single room.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </section>
     </main>
 </div>

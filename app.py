@@ -32,6 +32,7 @@ def send_verification_email(to_email, to_name, verification_link):
         print("Error sending email:", e)
         return False
 
+
 import uuid  #geenerates unique file names so uploads never collide
 
 ALLOWED_PROFILE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}  # Allowed image types
@@ -253,7 +254,45 @@ def get_preferences(cur, student_id):
     return dict(zip(cols, row)) if row else {}
 
 
+def get_best_available_match(cur, student_id):
+    cur.execute(
+        """
+        SELECT
+            other.student_id,
+            c.compatibility_score
+        FROM compatibility_score c
+        JOIN student me ON me.student_id = %s
+        JOIN student other
+          ON other.student_id = CASE
+                WHEN c.student1_id = %s THEN c.student2_id
+                ELSE c.student1_id
+             END
+        WHERE (c.student1_id = %s OR c.student2_id = %s)
+          AND other.hostel_id = me.hostel_id
+          AND NOT EXISTS (
+              SELECT 1 FROM room_assignment ra WHERE ra.student_id = other.student_id
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM roommate_request rr
+              WHERE rr.student_id = other.student_id
+                AND COALESCE(rr.preferred_room_type, '') ILIKE 'single'
+          )
+        ORDER BY c.compatibility_score DESC, other.student_id ASC
+        LIMIT 1
+        """,
+        (student_id, student_id, student_id, student_id),
+    )
+    row = cur.fetchone()
+    if not row:
+        return None, None
+    return row[0], row[1]
+
+
 def assign_students_to_room(cur, student1_id, student2_id=None, min_score=0):
+    if is_student_assigned(cur, student1_id):
+        return False
+    if student2_id and is_student_assigned(cur, student2_id):
+        return False
 
     cur.execute("SELECT hostel_id FROM student WHERE student_id = %s", (student1_id,))
     row = cur.fetchone()
@@ -295,21 +334,7 @@ def assign_students_to_room(cur, student1_id, student2_id=None, min_score=0):
     # Insert / update room_assignment rows
     students = [student1_id, student2_id] if student2_id else [student1_id]
     for s_id in students:
-        cur.execute(
-            """
-            INSERT INTO room_assignment (room_id, student_id, assigned_date)
-            VALUES (%s, %s, CURRENT_DATE)
-            ON CONFLICT (student_id) DO UPDATE
-                SET room_id = EXCLUDED.room_id,
-                    assigned_date = EXCLUDED.assigned_date
-            """,
-            (room_id, s_id)
-        )
-
-    cur.execute(
-        "UPDATE room SET current_occupancy = COALESCE(current_occupancy, 0) + %s WHERE room_id = %s",
-        (beds_needed, room_id)
-    )
+        upsert_room_assignment(cur, s_id, room_id)
 
     # match history reocrds
     if student2_id and score is not None:
@@ -677,12 +702,16 @@ def dashboard():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT s.student_id, s.name, s.department, s.year, h.hostel_name,
+        SELECT
+               u.username,
+               u.email,
+               s.student_id, s.name, s.department, s.year, h.hostel_name,
                l.sleep_time, l.study_style, l.cleanliness_level, l.noise_tolerance
-        FROM student s
-        JOIN hostel h ON s.hostel_id = h.hostel_id
+        FROM users u
+        LEFT JOIN student s ON s.user_id = u.id
+        LEFT JOIN hostel h ON s.hostel_id = h.hostel_id
         LEFT JOIN lifestyle_preferences l ON s.student_id = l.student_id
-        WHERE s.user_id = %s
+        WHERE u.id = %s
     """, (session["user_id"],))
     
     data = cur.fetchone()
@@ -690,25 +719,29 @@ def dashboard():
     if not data:
         cur.close()
         conn.close()
-        return "<h2>No data found for this user.</h2>"
+        return redirect("/login")
 
     student = {
-        "student_id": data[0],
-        "name": data[1],
-        "department": data[2],
-        "year": data[3],
-        "hostel_name": data[4]
+        "student_id": data[2],
+        "name": data[3] or data[0],
+        "email": data[1],
+        "department": data[4] or "Not set yet",
+        "year": data[5] if data[5] is not None else "Not set yet",
+        "hostel_name": data[6] or "Not set yet",
     }
 
     preferences = {
-        "sleep_time": data[5],
-        "study_style": data[6],
-        "cleanliness_level": data[7],
-        "noise_tolerance": data[8]
+        "sleep_time": data[7] or "Not set yet",
+        "study_style": data[8] or "Not set yet",
+        "cleanliness_level": data[9] if data[9] is not None else "Not set yet",
+        "noise_tolerance": data[10] if data[10] is not None else "Not set yet",
     }
-    has_preferences = all(value is not None for value in (data[5], data[6], data[7], data[8]))
+    has_preferences = all(value is not None for value in (data[7], data[8], data[9], data[10]))
 
-    notifications, unread_notifications = get_student_notifications(cur, student["student_id"], limit=8)
+    notifications = []
+    unread_notifications = 0
+    if student["student_id"]:
+        notifications, unread_notifications = get_student_notifications(cur, student["student_id"], limit=8)
 
     cur.close()
     conn.close()
@@ -782,6 +815,13 @@ def student_compatibility():
     )
     rows = cur.fetchall()
 
+    cur.execute(
+        "SELECT EXISTS(SELECT 1 FROM room_assignment WHERE student_id = %s)",
+        (student_id,)
+    )
+    has_room_assignment = bool(cur.fetchone()[0])
+    best_match_id, _ = get_best_available_match(cur, student_id)
+
     cur.close()
     conn.close()
 
@@ -795,13 +835,16 @@ def student_compatibility():
                 "year": row[3],
                 "score": row[4],
                 "request_sent": current_target_id == row[0] and current_status == "pending",
+                "is_top_match": best_match_id == row[0],
             }
         )
 
     request_error = request.args.get("err")
     request_ok = request.args.get("ok")
     block_reason = None
-    if preferred_room_type == "single":
+    if has_room_assignment:
+        block_reason = "You already have a room assigned."
+    elif preferred_room_type == "single":
         block_reason = "Single-room preference is active; roommate requests are disabled."
 
     current_user = {
@@ -884,6 +927,21 @@ def student_send_request(target_student_id):
         conn.close()
         return redirect("/student/compatibility?err=single_pref")
 
+    if is_student_assigned(cur, target_student_id):
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=target_unavailable")
+
+    best_match_id, _ = get_best_available_match(cur, student_id)
+    if not best_match_id:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=no_eligible_match")
+    if best_match_id != target_student_id:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=not_top_match")
+
     #using shared helper to assign rooms
     success = assign_students_to_room(cur, student_id, target_student_id)
     if not success:
@@ -891,23 +949,9 @@ def student_send_request(target_student_id):
         conn.close()
         return redirect("/student/compatibility?err=no_room")
 
-    # updating request status
-    cur.execute(
-        """
-        UPDATE roommate_request
-        SET assigned_roommate_id = %s, request_status = 'Assigned'
-        WHERE student_id = %s
-        """,
-        (target_student_id, student_id)
-    )
-    if cur.rowcount == 0:
-        cur.execute(
-            """
-            INSERT INTO roommate_request (student_id, preferred_room_type, request_status, assigned_roommate_id)
-            VALUES (%s, 'Double', 'Assigned', %s)
-            """,
-            (student_id, target_student_id)
-        )
+    # updating request status for both students
+    set_roommate_assignment(cur, student_id, target_student_id, "Assigned")
+    set_roommate_assignment(cur, target_student_id, student_id, "Assigned")
 
     cur.execute("SELECT name FROM student WHERE student_id = %s", (student_id,))
     sender_row = cur.fetchone()
@@ -1330,25 +1374,13 @@ def edit_profile():
 def is_student_assigned(cur, student_id):
     cur.execute(
         """
-        SELECT (
-            EXISTS (
-                SELECT 1
-                FROM roommate_request
-                WHERE student_id = %s
-                  AND (
-                      assigned_roommate_id IS NOT NULL
-                      OR COALESCE(request_status, '') ILIKE 'assigned'
-                  )
-            )
-            OR
-            EXISTS (
-                SELECT 1
-                FROM room_assignment
-                WHERE student_id = %s
-            )
+        SELECT EXISTS (
+            SELECT 1
+            FROM room_assignment
+            WHERE student_id = %s
         )
         """,
-        (student_id, student_id)
+        (student_id,)
     )
     row = cur.fetchone()
     return bool(row and row[0])
@@ -1404,7 +1436,7 @@ def get_available_room_id(cur, hostel_id):
         FROM room
         WHERE hostel_id = %s
           AND COALESCE(capacity, 0) - COALESCE(current_occupancy, 0) >= 2
-        ORDER BY (COALESCE(capacity, 0) - COALESCE(current_occupancy, 0)) ASC, room_id ASC
+        ORDER BY room_id ASC
         LIMIT 1
     """, (hostel_id,))
     row = cur.fetchone()
@@ -1804,6 +1836,57 @@ def admin_dashboard():
 
     stats, system_status = get_admin_summary_stats(cur)
 
+    cur.execute(
+        """
+        SELECT
+            s.student_id,
+            s.name,
+            COALESCE(h.hostel_name, 'Unknown Hostel') AS hostel_name,
+            COALESCE(rr.request_status, 'Pending') AS request_status,
+            r.room_number,
+            ra.assigned_date,
+            CASE
+                WHEN ra.student_id IS NOT NULL THEN 'Assigned'
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM room r2
+                    WHERE r2.hostel_id = s.hostel_id
+                      AND COALESCE(r2.capacity, 0) = 1
+                      AND COALESCE(r2.current_occupancy, 0) < COALESCE(r2.capacity, 0)
+                ) THEN 'Waiting'
+                ELSE 'No Single Room Available'
+            END AS allocation_status
+        FROM student s
+        JOIN hostel h ON h.hostel_id = s.hostel_id
+        JOIN LATERAL (
+            SELECT
+                COALESCE(preferred_room_type, '') AS preferred_room_type,
+                COALESCE(request_status, '') AS request_status
+            FROM roommate_request
+            WHERE student_id = s.student_id
+            ORDER BY request_id DESC
+            LIMIT 1
+        ) rr ON TRUE
+        LEFT JOIN room_assignment ra ON ra.student_id = s.student_id
+        LEFT JOIN room r ON r.room_id = ra.room_id
+        WHERE rr.preferred_room_type ILIKE 'single'
+        ORDER BY
+            CASE
+                WHEN ra.student_id IS NOT NULL THEN 0
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM room r3
+                    WHERE r3.hostel_id = s.hostel_id
+                      AND COALESCE(r3.capacity, 0) = 1
+                      AND COALESCE(r3.current_occupancy, 0) < COALESCE(r3.capacity, 0)
+                ) THEN 1
+                ELSE 2
+            END,
+            s.name ASC
+        """
+    )
+    single_room_requests = cur.fetchall()
+
     cur.close()
     conn.close()
 
@@ -1823,6 +1906,7 @@ def admin_dashboard():
         auto_assigned=auto_assigned,
         pair_assigned=pair_assigned,
         single_assigned=single_assigned,
+        single_room_requests=single_room_requests,
     )
 
 
@@ -1865,6 +1949,64 @@ def admin_pending_requests():
     )
     pending_rows = cur.fetchall()
 
+    cur.execute(
+        """
+        SELECT
+            s.student_id,
+            s.name,
+            COALESCE(h.hostel_name, 'Unknown Hostel') AS hostel_name,
+            COALESCE(rr.request_status, 'Pending') AS request_status,
+            r.room_number,
+            ra.assigned_date,
+            EXISTS (
+                SELECT 1
+                FROM room r2
+                WHERE r2.hostel_id = s.hostel_id
+                  AND COALESCE(r2.capacity, 0) = 1
+                  AND COALESCE(r2.current_occupancy, 0) < COALESCE(r2.capacity, 0)
+            ) AS single_room_available,
+            CASE
+                WHEN ra.student_id IS NOT NULL THEN 'Assigned'
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM room r3
+                    WHERE r3.hostel_id = s.hostel_id
+                      AND COALESCE(r3.capacity, 0) = 1
+                      AND COALESCE(r3.current_occupancy, 0) < COALESCE(r3.capacity, 0)
+                ) THEN 'Waiting'
+                ELSE 'No Single Room'
+            END AS allocation_status
+        FROM student s
+        JOIN hostel h ON h.hostel_id = s.hostel_id
+        JOIN LATERAL (
+            SELECT
+                COALESCE(preferred_room_type, '') AS preferred_room_type,
+                COALESCE(request_status, '') AS request_status
+            FROM roommate_request
+            WHERE student_id = s.student_id
+            ORDER BY request_id DESC
+            LIMIT 1
+        ) rr ON TRUE
+        LEFT JOIN room_assignment ra ON ra.student_id = s.student_id
+        LEFT JOIN room r ON r.room_id = ra.room_id
+        WHERE rr.preferred_room_type ILIKE 'single'
+        ORDER BY
+            CASE
+                WHEN ra.student_id IS NOT NULL THEN 0
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM room r4
+                    WHERE r4.hostel_id = s.hostel_id
+                      AND COALESCE(r4.capacity, 0) = 1
+                      AND COALESCE(r4.current_occupancy, 0) < COALESCE(r4.capacity, 0)
+                ) THEN 1
+                ELSE 2
+            END,
+            s.name ASC
+        """
+    )
+    single_rows = cur.fetchall()
+
     cur.close()
     conn.close()
 
@@ -1876,6 +2018,7 @@ def admin_pending_requests():
         stats=stats,
         system_status=system_status,
         pending_rows=pending_rows,
+        single_rows=single_rows,
         single_msg=single_msg,
         single_err=single_err,
     )
@@ -2202,16 +2345,39 @@ def view_compatibility():
             rr2.assigned_roommate_id AS s2_assigned,
             s1.student_id AS s1_id,
             s2.student_id AS s2_id,
-            COALESCE(r1.room_number, r2.room_number, 'Not Assigned') AS room_number,
             CASE
-                WHEN rr1.assigned_roommate_id IS NOT NULL OR rr2.assigned_roommate_id IS NOT NULL THEN 'Assigned'
+                WHEN rr1.assigned_roommate_id = s2.student_id
+                 AND rr2.assigned_roommate_id = s1.student_id
+                 AND ra1.room_id IS NOT NULL
+                 AND ra1.room_id = ra2.room_id
+                THEN r1.room_number
+                ELSE 'Not Assigned'
+            END AS room_number,
+            CASE
+                WHEN rr1.assigned_roommate_id = s2.student_id
+                 AND rr2.assigned_roommate_id = s1.student_id
+                 AND ra1.room_id IS NOT NULL
+                 AND ra1.room_id = ra2.room_id
+                THEN 'Assigned'
                 ELSE 'Open'
             END AS pair_status
         FROM compatibility_score c
         JOIN student s1 ON c.student1_id = s1.student_id
         JOIN student s2 ON c.student2_id = s2.student_id
-        LEFT JOIN roommate_request rr1 ON s1.student_id = rr1.student_id
-        LEFT JOIN roommate_request rr2 ON s2.student_id = rr2.student_id
+        LEFT JOIN LATERAL (
+            SELECT assigned_roommate_id
+            FROM roommate_request
+            WHERE student_id = s1.student_id
+            ORDER BY request_id DESC
+            LIMIT 1
+        ) rr1 ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT assigned_roommate_id
+            FROM roommate_request
+            WHERE student_id = s2.student_id
+            ORDER BY request_id DESC
+            LIMIT 1
+        ) rr2 ON TRUE
         LEFT JOIN room_assignment ra1 ON ra1.student_id = s1.student_id
         LEFT JOIN room_assignment ra2 ON ra2.student_id = s2.student_id
         LEFT JOIN room r1 ON r1.room_id = ra1.room_id
@@ -2219,10 +2385,38 @@ def view_compatibility():
         ORDER BY c.compatibility_score DESC, c.score_id DESC
     """)
     scores = cur.fetchall()
+
+    cur.execute(
+        """
+        SELECT
+            s1.name AS student1_name,
+            s2.name AS student2_name,
+            r.room_number,
+            h.hostel_name,
+            ra1.assigned_date
+        FROM roommate_request rr1
+        JOIN roommate_request rr2
+          ON rr2.student_id = rr1.assigned_roommate_id
+         AND rr2.assigned_roommate_id = rr1.student_id
+        JOIN student s1 ON s1.student_id = rr1.student_id
+        JOIN student s2 ON s2.student_id = rr2.student_id
+        JOIN room_assignment ra1 ON ra1.student_id = s1.student_id
+        JOIN room_assignment ra2 ON ra2.student_id = s2.student_id
+        JOIN room r ON r.room_id = ra1.room_id AND r.room_id = ra2.room_id
+        JOIN hostel h ON h.hostel_id = r.hostel_id
+        WHERE s1.student_id < s2.student_id
+        ORDER BY ra1.assigned_date DESC, r.room_number ASC
+        """
+    )
+    assigned_pairs = cur.fetchall()
     cur.close()
     conn.close()
 
-    return render_template("admin_compatibility.html", scores=scores)
+    return render_template(
+        "admin_compatibility.html",
+        scores=scores,
+        assigned_pairs=assigned_pairs,
+    )
 
 
 @app.route("/admin/assign_roommates/<int:s1_id>/<int:s2_id>", methods=["POST"])
