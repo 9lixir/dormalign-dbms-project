@@ -312,6 +312,19 @@
             font-weight: 600;
         }
 
+        .hero-visual {
+            margin-top: 24px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .hero-visual img {
+            width: min(420px, 92%);
+            height: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 14px 28px rgba(18, 45, 130, 0.2));
+        }
+
         .action-card,
         .problem-statement-card,
         .how-it-works-card {
@@ -400,6 +413,9 @@
             </div>
             <div class="hero-subtitle-box mt-4 py-2 border border-secondary border-1 d-inline-block px-5">
                 <p class="lead mb-0 text-muted">Data-driven roommate matching for hostels</p>
+            </div>
+            <div class="hero-visual">
+                <img src="{{ url_for('static', filename='assets/bunk-bed.png') }}" alt="Bunk bed illustration">
             </div>
         </div>
     </header>
