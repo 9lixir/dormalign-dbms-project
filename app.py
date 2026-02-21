@@ -3,47 +3,28 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 load_dotenv()
 
-BASE_URL = os.environ.get("BASE_URL")
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
-
-serializer = URLSafeTimedSerializer(app.secret_key)
-
-import mailtrap as mt
-MAILTRAP_TOKEN = os.environ.get("MAILTRAP_TOKEN")
-def send_verification_email(to_email, to_name, verification_link):
-    mail = mt.Mail(
-        sender=mt.Address(email="hello@demomailtrap.co", name="DormAlign Team"),
-        to=[mt.Address(email=to_email, name=to_name)],
-        subject="Verify your DormAlign account",
-        text=f"Hi {to_name},\n\nPlease verify your email by clicking this link:\n{verification_link}\n\nThis link expires in 1 hour.",
-        category="Email Verification",
-    )
-    client = mt.MailtrapClient(token=MAILTRAP_TOKEN)
-    try:
-        response = client.send(mail)
-        print("Mailtrap response:", response)
-        return True
-    except Exception as e:
-        print("Error sending email:", e)
-        return False
 
 
 import uuid  #geenerates unique file names so uploads never collide
 
-ALLOWED_PROFILE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}  # Allowed image types
+ALLOWED_PROFILE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}  # allowed image extention tpyes
 PROFILE_UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "profile_pictures")  # folder path
 os.makedirs(PROFILE_UPLOAD_FOLDER, exist_ok=True)  # Creates folder if it does not exist
 app.config["MAX_CONTENT_LENGTH"] = 3 * 1024 * 1024  # Max upload size = 3 MB
 
+
+# small helper to allow only supported profile image file types
 def allowed_profile_image(filename):  # Small validator for uploaded file names
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_PROFILE_EXTENSIONS
 
 
+
+# opens a database connection using db_url or local db env values
 def get_db_connection():
     database_url = os.environ.get("DB_URL")
     if database_url:
@@ -58,12 +39,16 @@ def get_db_connection():
         )
 
 
+
+# gets the linked student id for the current logged in user id
 def get_student_id_by_user_id(cur, user_id):
     cur.execute("SELECT student_id FROM student WHERE user_id = %s", (user_id,))
     row = cur.fetchone()
     return row[0] if row else None
 
 
+
+# checks whether the current session user has admin role
 def is_admin():
     if "user_id" not in session:
         return False
@@ -76,6 +61,8 @@ def is_admin():
     return user is not None and user[0] == "admin"
 
 
+
+# fetches a basic user object used in admin/profile pages
 def get_user_row(cur, user_id):
     cur.execute(
         "SELECT id, username, email, role, profile_picture FROM users WHERE id = %s",
@@ -93,6 +80,8 @@ def get_user_row(cur, user_id):
     }
 
 
+
+# builds a redirect url for admin room page with optional message/error flags
 def admin_room_redirect(message=None, error=None):
     query_parts = []
     if message:
@@ -105,6 +94,8 @@ def admin_room_redirect(message=None, error=None):
     return redirect("/admin/rooms")
 
 
+
+# computes high level dashboard stats for students, rooms, and occupancy
 def get_admin_summary_stats(cur):
     cur.execute("SELECT COUNT(*) FROM student")
     total_students = cur.fetchone()[0]
@@ -158,6 +149,8 @@ def get_admin_summary_stats(cur):
     }
     return stats, system_status
 
+
+# creates the notifications table if it is missing
 def ensure_notifications_table(cur):
     cur.execute(
         """
@@ -174,6 +167,8 @@ def ensure_notifications_table(cur):
     )
 
 
+
+# returns latest notifications for a student and unread count
 def get_student_notifications(cur, student_id, limit=10):
     ensure_notifications_table(cur)
     cur.execute(
@@ -212,6 +207,8 @@ def get_student_notifications(cur, student_id, limit=10):
 
 # compatibility scoring 
 
+
+# calculates compatibility score between two students from lifestyle fields
 def calculate_compatibility(s1, s2):
     """
     Score two students out of 100.
@@ -238,8 +235,10 @@ def calculate_compatibility(s1, s2):
     return score
 
 
-# ── Room assignment helpers 
+# Room assignment 
 
+
+# loads preference values for one student as a dictionary
 def get_preferences(cur, student_id):
  
     cur.execute(
@@ -254,6 +253,8 @@ def get_preferences(cur, student_id):
     return dict(zip(cols, row)) if row else {}
 
 
+
+# finds the highest score available roommate candidate for a student
 def get_best_available_match(cur, student_id):
     cur.execute(
         """
@@ -288,6 +289,8 @@ def get_best_available_match(cur, student_id):
     return row[0], row[1]
 
 
+
+# assigns one or two students to a valid room while checking constraints
 def assign_students_to_room(cur, student1_id, student2_id=None, min_score=0):
     if is_student_assigned(cur, student1_id):
         return False
@@ -351,6 +354,8 @@ def assign_students_to_room(cur, student1_id, student2_id=None, min_score=0):
     return True
 
 
+
+# auto pairs unassigned students and handles leftover cases
 def auto_pair_all_pending_students():
   
     conn = get_db_connection()
@@ -419,7 +424,10 @@ def auto_pair_all_pending_students():
     conn.close()
 
 
+
+# renders landing page and switches view by logged in role
 @app.route("/")
+
 def home():
     algo_msg = request.args.get("algo_msg")
 
@@ -433,7 +441,10 @@ def home():
 
     return render_template("index.html", user_type=user_type, algo_msg=algo_msg)
 
+
+# handles account registration with duplicate username/email checks
 @app.route("/register", methods=["GET", "POST"])
+
 def register():
     error = None
 
@@ -455,31 +466,25 @@ def register():
             if cur.fetchone():
                 error = "Email already registered. Please use another."
             else:
-                # Insert user with is_verified = False
                 cur.execute(
-                    "INSERT INTO users (username, password, email, is_verified) VALUES (%s, %s, %s, %s)",
-                    (username, password, email, False)
+                    "INSERT INTO users (username, password, email) VALUES (%s, %s, %s)",
+                    (username, password, email)
                 )
                 conn.commit()
 
-                # Generate verification token and send email
-                token = serializer.dumps(email, salt="email-verify")
-                
-                BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:5001")
-                verify_url = f"{BASE_URL}/verify/{token}"
-
-                send_verification_email(email, username, verify_url)
-
                 cur.close()
                 conn.close()
-                return redirect("/verify-pending")
+                return redirect("/login")
 
         cur.close()
         conn.close()
 
     return render_template("register.html", error=error)
 
+
+# authenticates user credentials and starts session on success
 @app.route("/login", methods=["GET", "POST"])
+
 def login():
     error = None
     if request.method == "POST":
@@ -489,7 +494,7 @@ def login():
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, password, is_verified FROM users WHERE username = %s",
+            "SELECT id, password FROM users WHERE username = %s",
             (username,)
         )
         user = cur.fetchone()
@@ -497,9 +502,6 @@ def login():
         conn.close()
 
         if user and check_password_hash(user[1], password):
-            if not user[2]:  # is_verified is False
-                error = "Please verify your email before logging in."
-                return render_template("login.html", error=error)
             session["user_id"] = user[0]
             return redirect("/")
         error = "Invalid username or password."
@@ -507,95 +509,18 @@ def login():
 
     return render_template("login.html", error=error)
 
+
+# clears session and sends user back to login
 @app.route("/logout")
+
 def logout():
     session.clear()
     return redirect("/login")
 
-@app.route("/verify-pending")
-def verify_pending():
-    return render_template("verify_pending.html")
 
-
-@app.route("/verify/<token>")
-def verify_email(token):
-    try:
-        email = serializer.loads(token, salt="email-verify", max_age=3600)
-    except SignatureExpired:
-        return render_template("login.html", error="Verification link has expired. Please register again.")
-    except BadSignature:
-        return render_template("login.html", error="Invalid verification link.")
-
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute(
-        "UPDATE users SET is_verified = TRUE WHERE email = %s",
-        (email,)
-    )
-    conn.commit()
-    cur.close()
-    conn.close()
-    return redirect("/login?verified=1")
-
-
-@app.route("/forgot-password", methods=["GET", "POST"])
-def forgot_password():
-    message = None
-    error = None
-    if request.method == "POST":
-        email = request.form.get("email", "").strip()
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT username FROM users WHERE email = %s", (email,))
-        user = cur.fetchone()
-        cur.close()
-        conn.close()
-
-        if user:
-            token = serializer.dumps(email, salt="password-reset")
-            reset_url = f"{BASE_URL}/{token}"
-            msg = Message("Reset your DormAlign password", recipients=[email])
-            msg.body = f"Hi {user[0]},\n\nClick this link to reset your password:\n{reset_url}\n\nThis link expires in 1 hour.\n\n- DormAlign Team"
-            mail.send(msg)
-        message = "If that email is registered, a reset link has been sent."
-
-    return render_template("forgot_password.html", message=message, error=error)
-
-
-@app.route("/reset-password/<token>", methods=["GET", "POST"])
-def reset_password(token):
-    try:
-        email = serializer.loads(token, salt="password-reset", max_age=3600)
-    except SignatureExpired:
-        return render_template("login.html", error="Reset link has expired. Please try again.")
-    except BadSignature:
-        return render_template("login.html", error="Invalid reset link.")
-
-    error = None
-    if request.method == "POST":
-        new_password = request.form.get("password", "")
-        confirm_password = request.form.get("confirm_password", "")
-
-        if not new_password:
-            error = "Password cannot be empty."
-        elif new_password != confirm_password:
-            error = "Passwords do not match."
-        else:
-            hashed = generate_password_hash(new_password)
-            conn = get_db_connection()
-            cur = conn.cursor()
-            cur.execute(
-                "UPDATE users SET password = %s WHERE email = %s",
-                (hashed, email)
-            )
-            conn.commit()
-            cur.close()
-            conn.close()
-            return redirect("/login?reset=1")
-
-    return render_template("reset_password.html", token=token, error=error)
-
+# creates or updates student profile and lifestyle preference submission
 @app.route("/roommate", methods=["GET", "POST"])
+
 def roommate():
     if "user_id" not in session:
         return redirect("/login")
@@ -669,7 +594,10 @@ def roommate():
 
     return render_template("roommate_form.html")
 
+
+# shows admin list of submitted student profiles and preferences
 @app.route("/submissions")
+
 def submissions():
     if "user_id" not in session:
         return redirect("/login")
@@ -693,7 +621,10 @@ def submissions():
 
     return render_template("submissions.html", students=students)
 
+
+# renders student dashboard with safe defaults even before full profile input
 @app.route("/dashboard")
+
 def dashboard():
     if "user_id" not in session:
         return redirect("/login")
@@ -755,7 +686,10 @@ def dashboard():
     )
 
 
+
+# shows compatibility list and request state for the current student
 @app.route("/student/compatibility")
+
 def student_compatibility():
     if "user_id" not in session:
         return redirect("/login")
@@ -863,7 +797,10 @@ def student_compatibility():
     )
 
 
+
+# validates and processes roommate request/assignment for top eligible match
 @app.route("/student/send_request/<int:target_student_id>", methods=["POST"])
+
 def student_send_request(target_student_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -986,7 +923,10 @@ def student_send_request(target_student_id):
     return redirect("/student/compatibility?ok=1")
 
 
+
+# marks one notification as read for the logged in student
 @app.route("/student/notifications/<int:notification_id>/read", methods=["POST"])
+
 def student_mark_notification_read(notification_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -1015,7 +955,10 @@ def student_mark_notification_read(notification_id):
     return redirect("/dashboard")
 
 
+
+# shows detailed profile view for a student from compatibility list
 @app.route("/student/match_profile/<int:target_student_id>")
+
 def student_match_profile(target_student_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -1029,7 +972,7 @@ def student_match_profile(target_student_id):
         conn.close()
         return redirect("/roommate")
 
-    # Allow viewing only profiles that are actually matched in compatibility results.
+    # Allow viewing only profiles that are actually matched in compatibility results
     cur.execute(
         """
         SELECT compatibility_score
@@ -1130,7 +1073,10 @@ def student_match_profile(target_student_id):
     )
 
 
+
+# shows the room assignment and roommate names for current student
 @app.route("/student/assignment")
+
 def student_assignment():
     if "user_id" not in session:
         return redirect("/login")
@@ -1191,7 +1137,10 @@ def student_assignment():
 
     return render_template("student_assignment.html", assignment=assignment_data)
 
+
+# lets student update lifestyle preferences and room type choice
 @app.route("/update_preferences", methods=["GET", "POST"])
+
 def update_preferences():
     if "user_id" not in session:
         return redirect("/login")
@@ -1271,7 +1220,10 @@ def update_preferences():
     conn.close()
     return render_template("update_preferences.html", pref=pref)
 
+
+# updates account profile fields and optional profile picture upload
 @app.route("/profile/edit", methods=["GET", "POST"])
+
 def edit_profile():
     if "user_id" not in session:
         return redirect("/login")
@@ -1371,6 +1323,8 @@ def edit_profile():
 
 # admin helpers
 
+
+# checks whether a student currently has any room assignment
 def is_student_assigned(cur, student_id):
     cur.execute(
         """
@@ -1386,6 +1340,7 @@ def is_student_assigned(cur, student_id):
     return bool(row and row[0])
 
 
+# checks if the student latest request is single room preference
 def student_prefers_single(cur, student_id):
     cur.execute(
         """
@@ -1402,6 +1357,8 @@ def student_prefers_single(cur, student_id):
     return bool(row and row[0])
 
 
+
+# upserts roommate_request row to store assigned roommate/status
 def set_roommate_assignment(cur, student_id, roommate_id, status="Assigned"):
     cur.execute(
         "SELECT request_id FROM roommate_request WHERE student_id = %s ORDER BY request_id LIMIT 1",
@@ -1422,6 +1379,8 @@ def set_roommate_assignment(cur, student_id, roommate_id, status="Assigned"):
         """, (student_id, "Double", status, roommate_id))
 
 
+
+# resets roommate assignment back to pending for a student
 def clear_roommate_assignment(cur, student_id):
     cur.execute("""
         UPDATE roommate_request
@@ -1430,6 +1389,8 @@ def clear_roommate_assignment(cur, student_id):
     """, (student_id,))
 
 
+
+# returns first available shared room in ascending room order
 def get_available_room_id(cur, hostel_id):
     cur.execute("""
         SELECT room_id
@@ -1443,6 +1404,8 @@ def get_available_room_id(cur, hostel_id):
     return row[0] if row else None
 
 
+
+# returns first available single-capacity room in a hostel
 def get_available_single_room_id(cur, hostel_id):
     cur.execute(
         """
@@ -1460,6 +1423,8 @@ def get_available_single_room_id(cur, hostel_id):
     return row[0] if row else None
 
 
+
+# marks student as assigned for single room preference state
 def set_single_assignment(cur, student_id, status="Assigned"):
     cur.execute(
         """
@@ -1481,6 +1446,8 @@ def set_single_assignment(cur, student_id, status="Assigned"):
         )
 
 
+
+# creates or moves a room assignment and keeps room occupancy in sync
 def upsert_room_assignment(cur, student_id, room_id):
     cur.execute(
         "SELECT assignment_id, room_id FROM room_assignment WHERE student_id = %s ORDER BY assignment_id LIMIT 1",
@@ -1519,6 +1486,8 @@ def upsert_room_assignment(cur, student_id, room_id):
         )
 
 
+
+# deletes a student room assignment and updates occupancy safely
 def remove_room_assignment(cur, student_id):
     cur.execute(
         "SELECT assignment_id, room_id FROM room_assignment WHERE student_id = %s ORDER BY assignment_id LIMIT 1",
@@ -1538,6 +1507,8 @@ def remove_room_assignment(cur, student_id):
         )
 
 
+
+# stores match history row for an assigned pair if not already open
 def record_match_history(cur, student1_id, student2_id, room_id, score):
     s1 = min(student1_id, student2_id)
     s2 = max(student1_id, student2_id)
@@ -1560,6 +1531,8 @@ def record_match_history(cur, student1_id, student2_id, room_id, score):
     """, (s1, s2, room_id, score))
 
 
+
+# closes active match history record for a roommate pair
 def close_match_history(cur, student1_id, student2_id):
     s1 = min(student1_id, student2_id)
     s2 = max(student1_id, student2_id)
@@ -1575,7 +1548,10 @@ def close_match_history(cur, student1_id, student2_id):
 
 # admin profile
 
+
+# renders and updates admin profile information
 @app.route("/admin/profile", methods=["GET", "POST"])
+
 def admin_profile():
     if "user_id" not in session:
         return redirect("/login")
@@ -1671,7 +1647,10 @@ def admin_profile():
 
 #admin managing room
 
+
+# creates a room record after validating hostel and capacity fields
 @app.route("/admin/rooms/create", methods=["POST"])
+
 def admin_create_room():
     if "user_id" not in session:
         return redirect("/login")
@@ -1728,7 +1707,10 @@ def admin_create_room():
     return admin_room_redirect(message="created")
 
 
+
+# updates room details with validation and duplicate room checks
 @app.route("/admin/rooms/<int:room_id>/update", methods=["POST"])
+
 def admin_update_room(room_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -1792,7 +1774,10 @@ def admin_update_room(room_id):
     return admin_room_redirect(message="updated")
 
 
+
+# deletes a room only when it is not currently assigned
 @app.route("/admin/rooms/<int:room_id>/delete", methods=["POST"])
+
 def admin_delete_room(room_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -1817,7 +1802,10 @@ def admin_delete_room(room_id):
     return admin_room_redirect(message="deleted")
 
 
+
+# renders admin dashboard with stats and single room request summary
 @app.route("/admin/dashboard")
+
 def admin_dashboard():
     if "user_id" not in session:
         return redirect("/login")
@@ -1910,7 +1898,10 @@ def admin_dashboard():
     )
 
 
+
+# shows pending requests and single-room assignment actions
 @app.route("/admin/pending-requests")
+
 def admin_pending_requests():
     if "user_id" not in session:
         return redirect("/login")
@@ -2024,7 +2015,10 @@ def admin_pending_requests():
     )
 
 
+
+# lists room inventory with occupancy summary and room controls
 @app.route("/admin/rooms")
+
 def admin_rooms():
     if "user_id" not in session:
         return redirect("/login")
@@ -2106,7 +2100,10 @@ def admin_rooms():
     )
 
 
+
+# auto assigns top compatibility pairs and eligible single requests
 @app.route("/admin/auto-assign-top-matches", methods=["POST"])
+
 def auto_assign_top_matches():
     if "user_id" not in session:
         return redirect("/login")
@@ -2197,7 +2194,10 @@ def auto_assign_top_matches():
     return redirect(f"/admin/dashboard?auto_assigned={assigned_students}&auto_pairs={assigned_pairs}&auto_single={single_assigned}")
 
 
+
+# assigns one single-pref student to an available single room
 @app.route("/admin/assign-single/<int:student_id>", methods=["POST"])
+
 def assign_single_student(student_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -2228,7 +2228,10 @@ def assign_single_student(student_id):
         conn.close()
 
 
+
+# removes assignment for a student and linked roommate when needed
 @app.route("/admin/unassign/<int:student_id>", methods=["POST"])
+
 def unassign_student(student_id):
     if "user_id" not in session:
         return redirect("/login")
@@ -2263,7 +2266,10 @@ def unassign_student(student_id):
 
 
 #  Compatibility calculation 
+
+# recomputes compatibility scores for eligible non-single students
 @app.route("/admin/calculate_compatibility")
+
 def generate_compatibility():
     if not is_admin():
         return "Access Denied", 403
@@ -2327,7 +2333,10 @@ def generate_compatibility():
     return redirect("/?algo_msg=scores_calculated")
 
 
+
+# shows compatibility table plus currently assigned roommate pairs
 @app.route("/admin/view/compatibility")
+
 def view_compatibility():
     if not is_admin():
         return "Access Denied", 403
@@ -2419,7 +2428,10 @@ def view_compatibility():
     )
 
 
+
+# manually assigns a selected compatibility pair into a free shared room
 @app.route("/admin/assign_roommates/<int:s1_id>/<int:s2_id>", methods=["POST"])
+
 def assign_roommate_pair(s1_id, s2_id):
     if not is_admin():
         return "Access Denied", 403
