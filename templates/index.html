@@ -201,6 +201,7 @@
         }
         .how-it-works-card:hover .step-number { transform: scale(1.2) rotate(-5deg); }
 
+        /* FIX: h2 visibility tied to parent wrapper getting .visible */
         .section-heading-wrap h2 {
             opacity: 0;
             transform: translateY(20px);
@@ -328,14 +329,13 @@
             border-color: #9ec3ff;
         }
 
-        /* FIX: Separate dot and step-number rules so numbers are visible */
+        /* FIX: separated so step-number doesn't get a blue background hiding the text */
         .dot {
             background-color: var(--blue);
         }
 
         .step-number {
             color: var(--blue);
-            /* No background-color here — was the bug causing invisible numbers */
         }
 
         .btn-primary {
@@ -364,7 +364,6 @@
             background: #f8fbff;
             color: #36527f;
         }
-
         .popup-toast {
             position: fixed;
             top: 78px;
@@ -428,8 +427,18 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-                    <li class="nav-item"><a class="btn btn-primary btn-custom ms-lg-3" href="/register">Sign Up</a></li>
+                    {% if not user_type %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                        <li class="nav-item"><a class="btn btn-primary btn-custom ms-lg-3" href="/register">Sign Up</a></li>
+                    {% elif user_type == 'admin' %}
+                        <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Admin Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/profile">Admin Profile</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/view/compatibility">Scores</a></li>
+                        <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                        <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -448,6 +457,7 @@
 
     <main class="container mb-5">
 
+        {% if not user_type %}
         <div class="text-center mb-5">
             <div class="role-banner bg-light border">
                 <i class="fa-solid fa-circle-info text-muted"></i>
