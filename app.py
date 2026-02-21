@@ -170,7 +170,7 @@ def ensure_notifications_table(cur):
 
 # returns latest notifications for a student and unread count
 def get_student_notifications(cur, student_id, limit=10):
-    ensure_notifications_table(cur)
+    ensure_notifications_table(cur)# make sure notifications table exisst
     cur.execute(
         """
         SELECT
@@ -187,10 +187,11 @@ def get_student_notifications(cur, student_id, limit=10):
         """,
         (student_id, limit)
     )
+    
     rows = cur.fetchall()
     items = []
     unread_count = 0
-    for row in rows:
+    for row in rows:        
         item = {
             "notification_id": row[0],
             "message": row[1],
@@ -198,9 +199,10 @@ def get_student_notifications(cur, student_id, limit=10):
             "created_at": row[3],
             "sender_name": row[4],
         }
+        # count unread items for badge display
         if not item["is_read"]:
             unread_count += 1
-        items.append(item)
+        items.append(item)    
     return items, unread_count
 
 #compat scores calculation

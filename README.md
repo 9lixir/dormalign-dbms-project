@@ -73,3 +73,24 @@ Open:
 
 ## Environment Variables
 See `.env.example` for full list.
+
+## Screenshots
+
+### Home Page Views
+#### Home View 1
+![home view 1](docs/screenshots/home-page.png)
+
+#### Home View 2
+![home view 2](docs/screenshots/home-page1.png)
+
+#### Home View 3
+![home view 3](docs/screenshots/home-page2.png)
+
+#### Home View 4
+![home view 4](docs/screenshots/home-page3.png)
+
+### Student Dashboard
+![student dashboard](docs/screenshots/dashboard-user.png)
+
+### Admin Dashboard
+![admin dashboard](docs/screenshots/dashboard-admin.png)
