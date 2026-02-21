@@ -201,6 +201,7 @@
         }
         .how-it-works-card:hover .step-number { transform: scale(1.2) rotate(-5deg); }
 
+        /* FIX: h2 visibility tied to parent wrapper getting .visible */
         .section-heading-wrap h2 {
             opacity: 0;
             transform: translateY(20px);
@@ -328,14 +329,13 @@
             border-color: #9ec3ff;
         }
 
-        /* FIX: Separate dot and step-number rules so numbers are visible */
+        /* FIX: separated so step-number doesn't get a blue background hiding the text */
         .dot {
             background-color: var(--blue);
         }
 
         .step-number {
             color: var(--blue);
-            /* No background-color here — was the bug causing invisible numbers */
         }
 
         .btn-primary {
@@ -364,11 +364,6 @@
             background: #f8fbff;
             color: #36527f;
         }
-
-        /* Also fix the HOW IT WORKS section heading visibility */
-        .section-heading-wrap h2 {
-            color: var(--ink);
-        }
     </style>
 </head>
 <body>
@@ -381,8 +376,18 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-                    <li class="nav-item"><a class="btn btn-primary btn-custom ms-lg-3" href="/register">Sign Up</a></li>
+                    {% if not user_type %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                        <li class="nav-item"><a class="btn btn-primary btn-custom ms-lg-3" href="/register">Sign Up</a></li>
+                    {% elif user_type == 'admin' %}
+                        <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Admin Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/profile">Admin Profile</a></li>
+                        <li class="nav-item"><a class="nav-link" href="/admin/view/compatibility">Scores</a></li>
+                        <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
+                        <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
+                    {% endif %}
                 </ul>
             </div>
         </div>
@@ -401,6 +406,7 @@
 
     <main class="container mb-5">
 
+        {% if not user_type %}
         <div class="text-center mb-5">
             <div class="role-banner bg-light border">
                 <i class="fa-solid fa-circle-info text-muted"></i>
@@ -429,6 +435,78 @@
                 </div>
             </div>
         </div>
+
+        {% elif user_type == 'admin' %}
+        <div class="mb-5">
+            <div class="role-banner" style="background:#fff3cd; border:1px solid #ffc107; color:#856404;">
+                <i class="fa-solid fa-shield-halved"></i>
+                <span>Admin Panel — Manage students and compatibility scores</span>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="action-card">
+                        <div class="action-card-icon" style="background:#e8f0fe; color:#0d6efd;">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </div>
+                        <h5>Compatibility Scores</h5>
+                        <p>View all computed compatibility pairings between students.</p>
+                        <a href="/admin/view/compatibility" class="btn btn-primary btn-custom w-100">View Scores</a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="action-card">
+                        <div class="action-card-icon" style="background:#e6f4ea; color:#198754;">
+                            <i class="fa-solid fa-calculator"></i>
+                        </div>
+                        <h5>Calculate Scores</h5>
+                        <p>Run the compatibility algorithm across all student profiles.</p>
+                        <a href="/admin/calculate_compatibility" class="btn btn-outline-dark btn-custom w-100"><span>Run Algorithm</span></a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="action-card">
+                        <div class="action-card-icon" style="background:#f3e8ff; color:#8b5cf6;">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <h5>Student Submissions</h5>
+                        <p>Browse all student entries and their submitted preferences.</p>
+                        <a href="/submissions" class="btn btn-outline-dark btn-custom w-100"><span>View Submissions</span></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="mb-5">
+            <div class="role-banner" style="background:#e8f0fe; border:1px solid #b6d0f7; color:#0d47a1;">
+                <i class="fa-solid fa-graduation-cap"></i>
+                <span>Student Portal — Find your compatible roommate</span>
+            </div>
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-4">
+                    <div class="action-card">
+                        <div class="action-card-icon" style="background:#e8f0fe; color:#0d6efd;">
+                            <i class="fa-solid fa-gauge"></i>
+                        </div>
+                        <h5>Dashboard</h5>
+                        <p>View your profile, preferences, and matched roommate details.</p>
+                        <a href="/dashboard" class="btn btn-outline-dark btn-custom w-100"><span>Go to Dashboard</span></a>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="action-card">
+                        <div class="action-card-icon" style="background:#e6f4ea; color:#198754;">
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <h5>Submit Preferences</h5>
+                        <p>Fill out your lifestyle habits so we can find your best match.</p>
+                        <a href="/roommate" class="btn btn-outline-dark btn-custom w-100"><span>Start Matching</span></a>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        {% endif %}
 
         <div class="problem-statement-card shadow-sm">
             <h4 class="fw-bold mb-4">PROBLEM STATEMENT</h4>
