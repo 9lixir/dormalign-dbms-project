@@ -8,6 +8,7 @@ from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 load_dotenv()
 
+BASE_URL = os.environ.get("BASE_URL")
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
@@ -23,15 +24,15 @@ mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.secret_key)
 
 
-import uuid  # Generates unique file names so uploads never collide
+import uuid  #geenerates unique file names so uploads never collide
 
 ALLOWED_PROFILE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}  # Allowed image types
-PROFILE_UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "profile_pictures")  # folger path
+PROFILE_UPLOAD_FOLDER = os.path.join(app.root_path, "static", "uploads", "profile_pictures")  # folder path
 os.makedirs(PROFILE_UPLOAD_FOLDER, exist_ok=True)  # Creates folder if it does not exist
 app.config["MAX_CONTENT_LENGTH"] = 3 * 1024 * 1024  # Max upload size = 3 MB
 
 def allowed_profile_image(filename):  # Small validator for uploaded file names
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_PROFILE_EXTENSIONS  # True only for allowed extensions
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_PROFILE_EXTENSIONS
 
 
 def get_db_connection():
@@ -45,7 +46,6 @@ def get_db_connection():
             password=os.getenv("DB_PASSWORD"),
             host=os.getenv("DB_HOST"),
             port=os.getenv("DB_PORT"),
-
         )
 
 
@@ -149,7 +149,6 @@ def get_admin_summary_stats(cur):
     }
     return stats, system_status
 
-
 def ensure_notifications_table(cur):
     cur.execute(
         """
@@ -202,24 +201,189 @@ def get_student_notifications(cur, student_id, limit=10):
 
 #compat scores calculation
 
-def calculate_compatibility(s1,s2):
+# compatibility scoring 
+
+def calculate_compatibility(s1, s2):
+    """
+    Score two students out of 100.
+    - sleep_time match:  25 pts (exact)
+    - study_style match:  20 pts (exact)
+    - cleanliness_level:  20 pts max, −5 per level difference
+    - noise_tolerance:   20 pts max, −5 per level difference
+    - guest_preference match: 15 pts (exact)
+    """
     score = 0
-    if s1["sleep_time"] == s2["sleep_time"]:
+
+    if s1.get("sleep_time") == s2.get("sleep_time"):
         score += 25
 
-    if s1["study_style"] == s2["study_style"]:
+    if s1.get("study_style") == s2.get("study_style"):
         score += 20
 
-    if abs(int(s1["cleanliness_level"]) - int(s2["cleanliness_level"])) <= 1:
-        score += 20
+    score += max(0, 20 - abs(int(s1.get("cleanliness_level", 0)) - int(s2.get("cleanliness_level", 0))) * 5)
+    score += max(0, 20 - abs(int(s1.get("noise_tolerance", 0)) - int(s2.get("noise_tolerance", 0))) * 5)
 
-    if abs(int(s1["noise_tolerance"]) - int(s2["noise_tolerance"])) <= 1:
-        score += 20
-
-    if s1["guest_preference"] == s2["guest_preference"]:
+    if s1.get("guest_preference") == s2.get("guest_preference"):
         score += 15
 
     return score
+
+
+# ── Room assignment helpers 
+
+def get_preferences(cur, student_id):
+ 
+    cur.execute(
+        """
+        SELECT sleep_time, cleanliness_level, noise_tolerance, guest_preference, study_style
+        FROM lifestyle_preferences WHERE student_id = %s
+        """,
+        (student_id,)
+    )
+    cols = [d[0] for d in cur.description]
+    row = cur.fetchone()
+    return dict(zip(cols, row)) if row else {}
+
+
+def assign_students_to_room(cur, student1_id, student2_id=None, min_score=0):
+
+    cur.execute("SELECT hostel_id FROM student WHERE student_id = %s", (student1_id,))
+    row = cur.fetchone()
+    if not row:
+        return False
+    hostel_id = row[0]
+
+    if student2_id:
+        cur.execute("SELECT hostel_id FROM student WHERE student_id = %s", (student2_id,))
+        row2 = cur.fetchone()
+        if not row2 or row2[0] != hostel_id:
+            return False
+
+        s1 = get_preferences(cur, student1_id)
+        s2 = get_preferences(cur, student2_id)
+        score = calculate_compatibility(s1, s2)
+        if score < min_score:
+            return False  
+    else:
+        score = None
+
+    # Find a room with enough free beds
+    beds_needed = 2 if student2_id else 1
+    cur.execute(
+        """
+        SELECT room_id FROM room
+        WHERE hostel_id = %s
+          AND COALESCE(capacity, 0) - COALESCE(current_occupancy, 0) >= %s
+        ORDER BY room_id ASC
+        LIMIT 1
+        """,
+        (hostel_id, beds_needed)
+    )
+    room_row = cur.fetchone()
+    if not room_row:
+        return False
+    room_id = room_row[0]
+
+    # Insert / update room_assignment rows
+    students = [student1_id, student2_id] if student2_id else [student1_id]
+    for s_id in students:
+        cur.execute(
+            """
+            INSERT INTO room_assignment (room_id, student_id, assigned_date)
+            VALUES (%s, %s, CURRENT_DATE)
+            ON CONFLICT (student_id) DO UPDATE
+                SET room_id = EXCLUDED.room_id,
+                    assigned_date = EXCLUDED.assigned_date
+            """,
+            (room_id, s_id)
+        )
+
+    cur.execute(
+        "UPDATE room SET current_occupancy = COALESCE(current_occupancy, 0) + %s WHERE room_id = %s",
+        (beds_needed, room_id)
+    )
+
+    # match history reocrds
+    if student2_id and score is not None:
+        sid_a, sid_b = sorted([student1_id, student2_id])
+        cur.execute(
+            """
+            INSERT INTO match_history (student1_id, student2_id, room_id, compatibility_score, start_date)
+            VALUES (%s, %s, %s, %s, CURRENT_DATE)
+            ON CONFLICT DO NOTHING
+            """,
+            (sid_a, sid_b, room_id, score)
+        )
+
+    return True
+
+
+def auto_pair_all_pending_students():
+  
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    # every student who does not yet have a room assignment
+    cur.execute(
+        """
+        SELECT s.student_id
+        FROM student s
+        LEFT JOIN room_assignment ra ON s.student_id = ra.student_id
+        WHERE ra.student_id IS NULL
+        ORDER BY s.student_id ASC
+        """
+    )
+    unassigned = [r[0] for r in cur.fetchall()]
+
+    while len(unassigned) >= 2:
+        s1 = unassigned.pop(0)
+        s2 = unassigned.pop(0)
+        assign_students_to_room(cur, s1, s2)
+
+    # leftover single student — put them in a double room (alone for now, roommate can be added later)
+    if unassigned:
+        student_id = unassigned[0]
+        cur.execute("SELECT hostel_id FROM student WHERE student_id = %s", (student_id,))
+        row = cur.fetchone()
+        if row:
+            hostel_id = row[0]
+            #first, try a double room so they can have a roommate in the future
+            cur.execute(
+                """
+                SELECT room_id FROM room
+                WHERE hostel_id = %s
+                  AND COALESCE(capacity, 0) > 1
+                  AND COALESCE(capacity, 0) - COALESCE(current_occupancy, 0) >= 1
+                ORDER BY room_id ASC
+                LIMIT 1
+                """,
+                (hostel_id,)
+            )
+            double_room = cur.fetchone()
+            if double_room:
+                room_id = double_room[0]
+                cur.execute(
+                    """
+                    INSERT INTO room_assignment (room_id, student_id, assigned_date)
+                    VALUES (%s, %s, CURRENT_DATE)
+                    ON CONFLICT (student_id) DO UPDATE
+                        SET room_id = EXCLUDED.room_id,
+                            assigned_date = EXCLUDED.assigned_date
+                    """,
+                    (room_id, student_id)
+                )
+                cur.execute(
+                    "UPDATE room SET current_occupancy = COALESCE(current_occupancy, 0) + 1 WHERE room_id = %s",
+                    (room_id,)
+                )
+            else:
+                # check if any room is available at all
+                assign_students_to_room(cur, student_id)
+        set_single_assignment(cur, student_id)
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 @app.route("/")
@@ -267,7 +431,9 @@ def register():
 
                 # Generate verification token and send email
                 token = serializer.dumps(email, salt="email-verify")
-                verify_url = f"http://127.0.0.1:5001/verify/{token}"
+                
+                BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:5001")
+                verify_url = f"{BASE_URL}/verify/{token}"
 
                 msg = Message("Verify your DormAlign account", recipients=[email])
                 msg.body = f"Hi {username},\n\nPlease verify your email by clicking this link:\n{verify_url}\n\nThis link expires in 1 hour.\n\n- DormAlign Team"
@@ -309,6 +475,7 @@ def login():
         return render_template("login.html", error=error)
 
     return render_template("login.html", error=error)
+
 @app.route("/logout")
 def logout():
     session.clear()
@@ -355,7 +522,7 @@ def forgot_password():
 
         if user:
             token = serializer.dumps(email, salt="password-reset")
-            reset_url = f"http://127.0.0.1:5001/reset-password/{token}"
+            reset_url = f"{BASE_URL}/{token}"
             msg = Message("Reset your DormAlign password", recipients=[email])
             msg.body = f"Hi {user[0]},\n\nClick this link to reset your password:\n{reset_url}\n\nThis link expires in 1 hour.\n\n- DormAlign Team"
             mail.send(msg)
@@ -666,6 +833,7 @@ def student_send_request(target_student_id):
         conn.close()
         return redirect("/student/compatibility?err=self_request")
 
+    #is it the same hostel?
     cur.execute(
         """
         SELECT s1.hostel_id, s2.hostel_id
@@ -681,6 +849,17 @@ def student_send_request(target_student_id):
         conn.close()
         return redirect("/student/compatibility?err=hostel_mismatch")
 
+    #check if not already assigned
+    cur.execute(
+        "SELECT EXISTS(SELECT 1 FROM room_assignment WHERE student_id = %s)",
+        (student_id,)
+    )
+    if cur.fetchone()[0]:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=already_assigned")
+
+    #not single preference
     cur.execute(
         """
         SELECT COALESCE(preferred_room_type, '')
@@ -697,10 +876,18 @@ def student_send_request(target_student_id):
         conn.close()
         return redirect("/student/compatibility?err=single_pref")
 
+    #using shared helper to assign rooms
+    success = assign_students_to_room(cur, student_id, target_student_id)
+    if not success:
+        cur.close()
+        conn.close()
+        return redirect("/student/compatibility?err=no_room")
+
+    # updating request status
     cur.execute(
         """
         UPDATE roommate_request
-        SET assigned_roommate_id = %s, request_status = 'Pending'
+        SET assigned_roommate_id = %s, request_status = 'Assigned'
         WHERE student_id = %s
         """,
         (target_student_id, student_id)
@@ -709,7 +896,7 @@ def student_send_request(target_student_id):
         cur.execute(
             """
             INSERT INTO roommate_request (student_id, preferred_room_type, request_status, assigned_roommate_id)
-            VALUES (%s, 'Double', 'Pending', %s)
+            VALUES (%s, 'Double', 'Assigned', %s)
             """,
             (student_id, target_student_id)
         )
@@ -993,7 +1180,6 @@ def update_preferences():
         study_style = request.form.get("study_style")
         preferred_room_type = request.form.get("preferred_room_type", "Double")
 
-        # Update preferences
         if pref:
             cur.execute("""
                 UPDATE lifestyle_preferences
@@ -1034,12 +1220,12 @@ def update_preferences():
     return render_template("update_preferences.html", pref=pref)
 
 @app.route("/profile/edit", methods=["GET", "POST"])
-def edit_profile():  
-    if "user_id" not in session:  # Only logged-in users can edit profile.
-        return redirect("/login")  
+def edit_profile():
+    if "user_id" not in session:
+        return redirect("/login")
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute(  # Load current profile values
+    cur.execute(
         "SELECT username, email, profile_picture FROM users WHERE id = %s",
         (session["user_id"],)
     )
@@ -1048,57 +1234,57 @@ def edit_profile():
         cur.close()
         conn.close()
         session.clear()
-        return redirect("/login")#force login
+        return redirect("/login")
     
-    user = {  # Data shown in form fields
-        "username": row[0],  
-        "email": row[1],  
-        "profile_picture": row[2]  
+    user = {
+        "username": row[0],
+        "email": row[1],
+        "profile_picture": row[2]
     }
     errors = []
     updated = request.args.get("updated") == "1"
 
-    if request.method == "POST":  # Form was submitted.
-        username = request.form.get("username", "").strip() 
-        email = request.form.get("email", "").strip() 
-        new_password = request.form.get("password", "")  
-        profile_file = request.files.get("profile_picture")  
-        next_picture = user["profile_picture"] 
-        next_filename = None 
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
+        new_password = request.form.get("password", "")
+        profile_file = request.files.get("profile_picture")
+        next_picture = user["profile_picture"]
+        next_filename = None
 
-        if not username:  # Validate username and email required.
-            errors.append("Username is required.")  
-        if not email:  
-            errors.append("Email is required.")  
+        if not username:
+            errors.append("Username is required.")
+        if not email:
+            errors.append("Email is required.")
 
-        cur.execute(  # Check username uniqueness except current user ko
+        cur.execute(
             "SELECT 1 FROM users WHERE username = %s AND id <> %s",
             (username, session["user_id"])
         )
+        if cur.fetchone():
+            errors.append("That username is already taken.")
 
-        if cur.fetchone():  # Username already used by someone else
-            errors.append("That username is already taken.")  
-
-        cur.execute(  # Check email uniqueness except current user
+        cur.execute(
             "SELECT 1 FROM users WHERE email = %s AND id <> %s",
             (email, session["user_id"])
         )
-        if cur.fetchone():  # Email already used by someone else
-            errors.append("That email is already registered.")  
+        if cur.fetchone():
+            errors.append("That email is already registered.")
         
-        if profile_file and profile_file.filename:  # Only validate file if selected
-            if not allowed_profile_image(profile_file.filename):  # Extension check
-                errors.append("Image must be png, jpg, jpeg, gif, or webp.")  
+        if profile_file and profile_file.filename:
+            if not allowed_profile_image(profile_file.filename):
+                errors.append("Image must be png, jpg, jpeg, gif, or webp.")
             else:
-                ext = os.path.splitext(profile_file.filename)[1].lower()  # Keep original ext
-                next_filename = f"user_{session['user_id']}_{uuid.uuid4().hex}{ext}"  # Unique
-                next_picture = f"uploads/profile_pictures/{next_filename}" 
-        if not errors:  # Continue only if validation passed.
-            if next_filename:  # Save uploaded image if provided.
-                profile_file.save(os.path.join(PROFILE_UPLOAD_FOLDER, next_filename))  # Write file to disk.
+                ext = os.path.splitext(profile_file.filename)[1].lower()
+                next_filename = f"user_{session['user_id']}_{uuid.uuid4().hex}{ext}"
+                next_picture = f"uploads/profile_pictures/{next_filename}"
 
-            if new_password:  # Update password only when user typed one.
-                hashed_password = generate_password_hash(new_password)  # Hash securely.
+        if not errors:
+            if next_filename:
+                profile_file.save(os.path.join(PROFILE_UPLOAD_FOLDER, next_filename))
+
+            if new_password:
+                hashed_password = generate_password_hash(new_password)
                 cur.execute(
                     """
                     UPDATE users
@@ -1107,7 +1293,7 @@ def edit_profile():
                     """,
                     (username, email, hashed_password, next_picture, session["user_id"])
                 )
-            else:  # Keep old password if password field was blank
+            else:
                 cur.execute(
                     """
                     UPDATE users
@@ -1118,20 +1304,20 @@ def edit_profile():
                 )
 
             conn.commit()
-            cur.close()  # Close cursor
-            conn.close()  # Close connection
-            return redirect("/profile/edit?updated=1")  # PRG pattern to prevent re-submit
+            cur.close()
+            conn.close()
+            return redirect("/profile/edit?updated=1")
 
-        user["username"] = username  # Refill form after errors
-        user["email"] = email  # Refill form after errors
-        user["profile_picture"] = next_picture  # Show current/new image path
-    cur.close()  
-    conn.close()  
-    return render_template("edit_profile.html", user=user, errors=errors, updated=updated)  # Render page
+        user["username"] = username
+        user["email"] = email
+        user["profile_picture"] = next_picture
+
+    cur.close()
+    conn.close()
+    return render_template("edit_profile.html", user=user, errors=errors, updated=updated)
 
 
-        
-# admin helper functions
+# admin helpers
 
 def is_student_assigned(cur, student_id):
     cur.execute(
@@ -1347,8 +1533,6 @@ def close_match_history(cur, student1_id, student2_id):
     """, (s1, s2))
 
 
-
-
 # admin profile
 
 @app.route("/admin/profile", methods=["GET", "POST"])
@@ -1385,7 +1569,6 @@ def admin_profile():
         if not email:
             errors.append("Email is required.")
 
-        # Uniqueness checks
         cur.execute(
             "SELECT 1 FROM users WHERE username = %s AND id <> %s",
             (username, session["user_id"])
@@ -1446,7 +1629,7 @@ def admin_profile():
     return render_template("admin_profile.html", admin=admin, errors=errors, updated=updated)
 
 
-# admin dashboard 
+#admin managing room
 
 @app.route("/admin/rooms/create", methods=["POST"])
 def admin_create_room():
@@ -1623,6 +1806,7 @@ def admin_dashboard():
     pair_assigned = int(pair_assigned) if pair_assigned and pair_assigned.isdigit() else None
     single_assigned = request.args.get("auto_single")
     single_assigned = int(single_assigned) if single_assigned and single_assigned.isdigit() else None
+
     return render_template(
         "admin_dashboard.html",
         admin=admin,
@@ -1724,7 +1908,7 @@ def admin_rooms():
             r.hostel_id
         FROM room r
         LEFT JOIN hostel h ON h.hostel_id = r.hostel_id
-        ORDER BY h.hostel_name ASC, r.room_number ASC
+        ORDER BY h.hostel_name ASC, r.room_id ASC
         """
     )
     room_rows = cur.fetchall()
@@ -1911,13 +2095,10 @@ def unassign_student(student_id):
 
     if row and row[0]:
         roommate_id = row[0]
-
         clear_roommate_assignment(cur, student_id)
         clear_roommate_assignment(cur, roommate_id)
-
         remove_room_assignment(cur, student_id)
         remove_room_assignment(cur, roommate_id)
-
         close_match_history(cur, student_id, roommate_id)
         conn.commit()
     else:
@@ -1930,8 +2111,7 @@ def unassign_student(student_id):
     return redirect("/admin/dashboard")
 
 
-
-
+#  Compatibility calculation 
 @app.route("/admin/calculate_compatibility")
 def generate_compatibility():
     if not is_admin():
@@ -2092,6 +2272,7 @@ def assign_roommate_pair(s1_id, s2_id):
     cur.close()
     conn.close()
     return redirect("/admin/view/compatibility")
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5001)

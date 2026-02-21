@@ -196,18 +196,17 @@
         .step-number {
             font-size: 2.5rem;
             font-weight: 800;
-            color: #0d6efd;
             line-height: 1;
             transition: transform 0.3s ease;
         }
         .how-it-works-card:hover .step-number { transform: scale(1.2) rotate(-5deg); }
 
-        section h2 {
+        .section-heading-wrap h2 {
             opacity: 0;
             transform: translateY(20px);
         }
-        section h2.visible { animation: fadeUp 0.5s ease forwards; }
-        section hr.visible {
+        .section-heading-wrap.visible h2 { animation: fadeUp 0.5s ease forwards; }
+        .section-heading-wrap.visible hr {
             animation: growWidth 0.6s ease 0.15s forwards;
             width: 0 !important;
             opacity: 0;
@@ -329,10 +328,14 @@
             border-color: #9ec3ff;
         }
 
-        .dot,
+        /* FIX: Separate dot and step-number rules so numbers are visible */
+        .dot {
+            background-color: var(--blue);
+        }
+
         .step-number {
             color: var(--blue);
-            background-color: var(--blue);
+            /* No background-color here — was the bug causing invisible numbers */
         }
 
         .btn-primary {
@@ -398,6 +401,11 @@
             font-size: 0.95rem;
             line-height: 1;
         }
+
+        /* Also fix the HOW IT WORKS section heading visibility */
+        .section-heading-wrap h2 {
+            color: var(--ink);
+        }
     </style>
 </head>
 <body>
@@ -420,19 +428,8 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
-                    {% if not user_type %}
-                        <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
-                        <li class="nav-item"><a class="btn btn-primary btn-custom ms-lg-3" href="/register">Sign Up</a></li>
-                    {% elif user_type == 'admin' %}
-                        <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Admin Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/admin/profile">Admin Profile</a></li>
-
-                        <li class="nav-item"><a class="nav-link" href="/admin/view/compatibility">Scores</a></li>
-                        <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
-                    {% else %}
-                        <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-                        <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
-                    {% endif %}
+                    <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
+                    <li class="nav-item"><a class="btn btn-primary btn-custom ms-lg-3" href="/register">Sign Up</a></li>
                 </ul>
             </div>
         </div>
@@ -451,7 +448,6 @@
 
     <main class="container mb-5">
 
-        {% if not user_type %}
         <div class="text-center mb-5">
             <div class="role-banner bg-light border">
                 <i class="fa-solid fa-circle-info text-muted"></i>
@@ -551,7 +547,6 @@
             </div>
         </div>
         {% endif %}
-
         <div class="problem-statement-card shadow-sm">
             <h4 class="fw-bold mb-4">PROBLEM STATEMENT</h4>
             <hr class="mb-4">
