@@ -32,6 +32,24 @@ def send_verification_email(to_email, to_name, verification_link):
         print("Error sending email:", e)
         return False
 
+
+def send_password_reset_email(to_email, to_name, reset_link):
+    mail = mt.Mail(
+        sender=mt.Address(email="hello@demomailtrap.co", name="DormAlign Team"),
+        to=[mt.Address(email=to_email, name=to_name)],
+        subject="Reset your DormAlign password",
+        text=f"Hi {to_name},\n\nClick this link to reset your password:\n{reset_link}\n\nThis link expires in 1 hour.",
+        category="Password Reset",
+    )
+    client = mt.MailtrapClient(token=MAILTRAP_TOKEN)
+    try:
+        response = client.send(mail)
+        print("Mailtrap response:", response)
+        return True
+    except Exception as e:
+        print("Error sending email:", e)
+        return False
+
 import uuid  #geenerates unique file names so uploads never collide
 
 ALLOWED_PROFILE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}  # Allowed image types
@@ -528,10 +546,9 @@ def forgot_password():
 
         if user:
             token = serializer.dumps(email, salt="password-reset")
-            reset_url = f"{BASE_URL}/{token}"
-            msg = Message("Reset your DormAlign password", recipients=[email])
-            msg.body = f"Hi {user[0]},\n\nClick this link to reset your password:\n{reset_url}\n\nThis link expires in 1 hour.\n\n- DormAlign Team"
-            mail.send(msg)
+            base = BASE_URL or "http://127.0.0.1:5001"
+            reset_url = f"{base}/reset-password/{token}"
+            send_password_reset_email(email, user[0], reset_url)
         message = "If that email is registered, a reset link has been sent."
 
     return render_template("forgot_password.html", message=message, error=error)
