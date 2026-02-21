@@ -357,7 +357,11 @@
             <div class="hero-content">
                 <div class="hero-copy">
                     <h3>Student Dashboard</h3>
+                    {% if has_preferences %}
                     <p>Track your profile, compatibility progress, and room assignment status from one place.</p>
+                    {% else %}
+                    <p>Start by submitting your preferences. You can still edit your profile and access home from here.</p>
+                    {% endif %}
                 </div>
                 <div class="hero-image-wrap">
                     <img src="{{ url_for('static', filename='assets/bunk-bed.png') }}" alt="Student dashboard illustration">
@@ -428,12 +432,14 @@
         </div>
 
         <div class="actions-wrap mt-4 d-flex gap-3">
+            {% if has_preferences %}
             <a href="/student/compatibility" class="btn btn-outline-success btn-home">
                 <span><i class="fa-solid fa-users me-2"></i>Roommate Compatibility</span>
             </a>
             <a href="/student/assignment" class="btn btn-outline-info btn-home">
                 <span><i class="fa-solid fa-house me-2"></i>Room Assignment</span>
             </a>
+            {% endif %}
             <form action="/profile/edit" method="GET">
                 <button type="submit" class="btn btn-outline-primary btn-home">
                 <span><i class="fa-solid fa-user-pen me-2"></i>Edit Profile</span>
@@ -443,7 +449,11 @@
 
             <form action="/update_preferences" method="GET">
                 <button type="submit" class="btn btn-outline-primary btn-home">
+                    {% if has_preferences %}
                     <span><i class="fa-solid fa-sliders me-2"></i>Update Preferences</span>
+                    {% else %}
+                    <span><i class="fa-solid fa-sliders me-2"></i>Submit Preferences</span>
+                    {% endif %}
                 </button>
             </form>
             <a href="/" class="btn btn-outline-dark btn-home"><span><i class="fa-solid fa-arrow-left me-2"></i>Home</span></a>

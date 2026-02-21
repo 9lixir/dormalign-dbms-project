@@ -162,7 +162,7 @@ def calculate_compatibility(s1, s2):
     return score
 
 
-# ── Room assignment helpers ───────────────────────────────────────────────────
+# Room assignment helpers 
 
 def get_preferences(cur, student_id):
     cur.execute(
@@ -391,8 +391,6 @@ def logout():
 
 
 
-
-
 @app.route("/roommate", methods=["GET", "POST"])
 def roommate():
     if "user_id" not in session:
@@ -502,12 +500,14 @@ def dashboard():
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT s.student_id, s.name, s.department, s.year, h.hostel_name,
+        SELECT u.username, u.email,
+               s.student_id, s.name, s.department, s.year, h.hostel_name,
                l.sleep_time, l.study_style, l.cleanliness_level, l.noise_tolerance
-        FROM student s
-        JOIN hostel h ON s.hostel_id = h.hostel_id
+        FROM users u
+        LEFT JOIN student s ON s.user_id = u.id
+        LEFT JOIN hostel h ON s.hostel_id = h.hostel_id
         LEFT JOIN lifestyle_preferences l ON s.student_id = l.student_id
-        WHERE s.user_id = %s
+        WHERE u.id = %s
     """, (session["user_id"],))
 
     data = cur.fetchone()
@@ -515,24 +515,34 @@ def dashboard():
     conn.close()
 
     if not data:
-        return "<h2>No data found for this user.</h2>"
+        return redirect("/login")
 
     student = {
-        "student_id": data[0],
-        "name": data[1],
-        "department": data[2],
-        "year": data[3],
-        "hostel_name": data[4]
+        "student_id": data[2],
+        "name": data[3] or data[0],
+        "email": data[1],
+        "department": data[4] or "Not set yet",
+        "year": data[5] if data[5] is not None else "Not set yet",
+        "hostel_name": data[6] or "Not set yet",
     }
 
     preferences = {
-        "sleep_time": data[5],
-        "study_style": data[6],
-        "cleanliness_level": data[7],
-        "noise_tolerance": data[8]
+        "sleep_time": data[7] or "Not set yet",
+        "study_style": data[8] or "Not set yet",
+        "cleanliness_level": data[9] if data[9] is not None else "Not set yet",
+        "noise_tolerance": data[10] if data[10] is not None else "Not set yet",
     }
 
-    return render_template("dashboard.html", student=student, preferences=preferences)
+    has_preferences = all(value not in (None, "Not set yet") for value in (
+        data[7], data[8], data[9], data[10]
+    ))
+
+    return render_template(
+        "dashboard.html",
+        student=student,
+        preferences=preferences,
+        has_preferences=has_preferences,
+    )
 
 
 @app.route("/student/compatibility")
