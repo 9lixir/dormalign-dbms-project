@@ -203,6 +203,7 @@
             background: linear-gradient(120deg, var(--blue), var(--purple));
         }
 
+
         @media (max-width: 1200px) {
             .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
@@ -285,7 +286,7 @@
         <section class="admin-actions">
             <a href="/admin/calculate_compatibility" class="chip-btn"><i class="fa-solid fa-calculator"></i>Calculate Scores</a>
             <form action="/admin/auto-assign-top-matches" method="POST">
-                <button class="chip-btn primary" type="submit"><i class="fa-solid fa-wand-magic-sparkles"></i>Auto Assign Top Matches</button>
+                <button class="chip-btn" type="submit"><i class="fa-solid fa-users"></i>Auto Assign Top Matches</button>
             </form>
             <a href="/admin/pending-requests" class="chip-btn"><i class="fa-solid fa-hourglass-half"></i>Pending Requests</a>
             <a href="/admin/rooms" class="chip-btn"><i class="fa-solid fa-door-open"></i>Manage Rooms</a>
