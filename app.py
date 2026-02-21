@@ -3,7 +3,6 @@ import os
 import psycopg2
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_mail import Mail, Message
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 
 load_dotenv()
@@ -12,17 +11,26 @@ BASE_URL = os.environ.get("BASE_URL")
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
-# Mail config
-app.config["MAIL_SERVER"] = os.environ.get("MAIL_SERVER")
-app.config["MAIL_PORT"] = int(os.environ.get("MAIL_PORT", 587))
-app.config["MAIL_USE_TLS"] = True
-app.config["MAIL_USERNAME"] = os.environ.get("MAIL_USERNAME")
-app.config["MAIL_PASSWORD"] = os.environ.get("MAIL_PASSWORD")
-app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("MAIL_DEFAULT_SENDER")
-
-mail = Mail(app)
 serializer = URLSafeTimedSerializer(app.secret_key)
 
+import mailtrap as mt
+MAILTRAP_TOKEN = os.environ.get("MAILTRAP_TOKEN")
+def send_verification_email(to_email, to_name, verification_link):
+    mail = mt.Mail(
+        sender=mt.Address(email="hello@demomailtrap.co", name="DormAlign Team"),
+        to=[mt.Address(email=to_email, name=to_name)],
+        subject="Verify your DormAlign account",
+        text=f"Hi {to_name},\n\nPlease verify your email by clicking this link:\n{verification_link}\n\nThis link expires in 1 hour.",
+        category="Email Verification",
+    )
+    client = mt.MailtrapClient(token=MAILTRAP_TOKEN)
+    try:
+        response = client.send(mail)
+        print("Mailtrap response:", response)
+        return True
+    except Exception as e:
+        print("Error sending email:", e)
+        return False
 
 import uuid  #geenerates unique file names so uploads never collide
 
@@ -435,9 +443,7 @@ def register():
                 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:5001")
                 verify_url = f"{BASE_URL}/verify/{token}"
 
-                msg = Message("Verify your DormAlign account", recipients=[email])
-                msg.body = f"Hi {username},\n\nPlease verify your email by clicking this link:\n{verify_url}\n\nThis link expires in 1 hour.\n\n- DormAlign Team"
-                mail.send(msg)
+                send_verification_email(email, username, verify_url)
 
                 cur.close()
                 conn.close()
