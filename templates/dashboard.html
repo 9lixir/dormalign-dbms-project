@@ -283,6 +283,7 @@
             overflow: hidden;
         }
 
+        /* ── React Notification Card styles ── */
         .notify-card {
             border: 1px solid #d5e2ff;
             border-radius: 14px;
@@ -327,6 +328,7 @@
             justify-content: space-between;
             align-items: center;
             gap: 10px;
+            transition: opacity 0.3s ease;
         }
 
         .notify-msg {
@@ -352,6 +354,11 @@
             font-size: 0.78rem;
             padding: 6px 10px;
             white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .notify-read:hover {
+            background: #dbeafe;
         }
 
         .notify-empty {
@@ -359,6 +366,19 @@
             color: #5871a1;
             font-weight: 600;
         }
+
+        .notify-mark-all {
+            border-radius: 8px;
+            border: 1px solid #a8c5ff;
+            background: #eef4ff;
+            color: #1d4ed8;
+            font-weight: 700;
+            font-size: 0.78rem;
+            padding: 5px 9px;
+            cursor: pointer;
+        }
+
+        .notify-mark-all:hover { background: #dbeafe; }
 
         .hero-content {
             display: grid;
@@ -417,7 +437,11 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
                     <li class="nav-item"><a class="nav-link active" href="/dashboard">Dashboard</a></li>
-                    <li class="nav-item"><a class="nav-link" href="/dashboard">Notifications{% if unread_notifications %} ({{ unread_notifications }}){% endif %}</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            Notifications{% if unread_notifications %} ({{ unread_notifications }}){% endif %}
+                        </a>
+                    </li>
                     <li class="nav-item"><a class="btn btn-outline-danger btn-sm ms-lg-3 mt-1" href="/logout">Logout</a></li>
                 </ul>
             </div>
@@ -447,31 +471,12 @@
             </div>
         </section>
 
-        <section class="notify-card">
-            <div class="notify-head">
-                <span>Notifications</span>
-                <span class="notify-badge">{{ unread_notifications }} unread</span>
-            </div>
-            {% if notifications %}
-            <div class="notify-list">
-                {% for n in notifications %}
-                <div class="notify-item">
-                    <div>
-                        <p class="notify-msg">{{ n.message }}</p>
-                        <p class="notify-time">{{ n.created_at.strftime('%b %d, %I:%M %p') if n.created_at else '' }}</p>
-                    </div>
-                    {% if not n.is_read %}
-                    <form action="/student/notifications/{{ n.notification_id }}/read" method="POST">
-                        <button type="submit" class="notify-read">Mark read</button>
-                    </form>
-                    {% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="notify-empty">No notifications yet.</div>
-            {% endif %}
-        </section>
+        <!-- React notification mount point — data passed via data attributes -->
+        <div
+            id="notify-root"
+            data-notifications="{{ notifications | tojson }}"
+            data-unread="{{ unread_notifications }}"
+        ></div>
 
         <div class="row g-4">
             <div class="col-md-6">
@@ -546,11 +551,9 @@
             {% endif %}
             <form action="/profile/edit" method="GET">
                 <button type="submit" class="btn btn-outline-primary btn-home">
-                <span><i class="fa-solid fa-user-pen me-2"></i>Edit Profile</span>
+                    <span><i class="fa-solid fa-user-pen me-2"></i>Edit Profile</span>
                 </button>
             </form>
-
-
             <form action="/update_preferences" method="GET">
                 <button type="submit" class="btn btn-outline-primary btn-home">
                     {% if has_preferences %}
@@ -565,6 +568,104 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- React CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- React Notification Component -->
+    {% raw %}
+    <script type="text/babel">
+        function NotificationCenter({ initialNotifications, initialUnread }) {
+            const [items, setItems] = React.useState(initialNotifications);
+
+            const unread = items.filter(n => !n.is_read).length;
+
+            function markRead(id) {
+                fetch(`/student/notifications/${id}/read`, { method: 'POST' })
+                    .then(res => {
+                        if (res.ok || res.redirected) {
+                            setItems(prev =>
+                                prev.map(n =>
+                                    n.notification_id === id ? { ...n, is_read: true } : n
+                                )
+                            );
+                        }
+                    })
+                    .catch(() => {
+                        // still update UI optimistically
+                        setItems(prev =>
+                            prev.map(n =>
+                                n.notification_id === id ? { ...n, is_read: true } : n
+                            )
+                        );
+                    });
+            }
+
+            function markAllRead() {
+                items
+                    .filter(n => !n.is_read)
+                    .forEach(n => markRead(n.notification_id));
+            }
+
+            return (
+                <section className="notify-card">
+                    <div className="notify-head">
+                        <span>Notifications</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span className="notify-badge">{unread} unread</span>
+                            {unread > 0 && (
+                                <button className="notify-mark-all" onClick={markAllRead}>
+                                    Mark all read
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    {items.length === 0 ? (
+                        <div className="notify-empty">No notifications yet.</div>
+                    ) : (
+                        <div className="notify-list">
+                            {items.map(n => (
+                                <div
+                                    key={n.notification_id}
+                                    className="notify-item"
+                                    style={{ opacity: n.is_read ? 0.55 : 1 }}
+                                >
+                                    <div>
+                                        <p className="notify-msg">{n.message}</p>
+                                        <p className="notify-time">{n.created_at}</p>
+                                    </div>
+                                    {!n.is_read && (
+                                        <button
+                                            className="notify-read"
+                                            onClick={() => markRead(n.notification_id)}
+                                        >
+                                            Mark read
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            );
+        }
+
+        const el = document.getElementById('notify-root');
+        const notifications = JSON.parse(el.dataset.notifications || '[]');
+        const unread = parseInt(el.dataset.unread || '0', 10);
+
+        ReactDOM.createRoot(el).render(
+            <NotificationCenter
+                initialNotifications={notifications}
+                initialUnread={unread}
+            />
+        );
+    </script>
+    {% endraw %}
+
     <script>
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {

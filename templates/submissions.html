@@ -102,6 +102,7 @@
 
         .btn-soft:hover { background: #e9f1ff; color: #153362; }
 
+        /* Panel used by React */
         .panel {
             border: 1px solid #d5e2ff;
             border-radius: 16px;
@@ -136,6 +137,57 @@
         }
 
         tr:last-child td { border-bottom: none; }
+
+        /* Search bar + filter strip */
+        .filter-strip {
+            padding: 12px 14px;
+            background: #f8fbff;
+            border-bottom: 1px solid #d5e2ff;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-input {
+            border-radius: 10px;
+            border: 1px solid #c8d8ff;
+            padding: 8px 12px;
+            font-family: "Manrope", sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--ink);
+            flex: 1;
+            min-width: 200px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .filter-input:focus {
+            border-color: #82b0ff;
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+        }
+
+        .filter-select {
+            border-radius: 10px;
+            border: 1px solid #c8d8ff;
+            padding: 8px 12px;
+            font-family: "Manrope", sans-serif;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--ink);
+            background: #fff;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-count {
+            font-size: 0.82rem;
+            color: #5d6d93;
+            font-weight: 700;
+            margin-left: auto;
+            white-space: nowrap;
+        }
 
         @media (max-width: 992px) {
             .admin-shell { display: block; }
@@ -183,47 +235,114 @@
             <a class="btn-soft" href="/"><i class="fa-solid fa-house"></i>Return Home</a>
         </div>
 
-        <section class="panel">
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Gender</th>
-                            <th>Department</th>
-                            <th>Year</th>
-                            <th>Hostel</th>
-                            <th><i class="fa-solid fa-moon me-1" style="color:#1d4ed8;"></i>Sleep</th>
-                            <th><i class="fa-solid fa-broom me-1" style="color:#f59e0b;"></i>Clean</th>
-                            <th><i class="fa-solid fa-volume-high me-1" style="color:#0ea5e9;"></i>Noise</th>
-                            <th><i class="fa-solid fa-user-group me-1" style="color:#7c3aed;"></i>Guests</th>
-                            <th><i class="fa-solid fa-book-open me-1" style="color:#0f9d58;"></i>Study</th>
-                            <th><i class="fa-solid fa-door-open me-1" style="color:#ec4899;"></i>Room</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for s in students %}
-                        <tr>
-                            <td>{{ s[0] }}</td>
-                            <td>{{ s[1] }}</td>
-                            <td>{{ s[2] }}</td>
-                            <td>{{ s[3] }}</td>
-                            <td>{{ s[4] }}</td>
-                            <td>{{ s[5] }}</td>
-                            <td>{{ s[6] }}</td>
-                            <td>{{ s[7] }}</td>
-                            <td>{{ s[8] }}</td>
-                            <td>{{ s[9] }}</td>
-                            <td>{{ s[10] }}</td>
-                            <td>{{ s[11] }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </section>
+        <!-- React mounts here — students data injected via data attribute -->
+        <div
+            id="submissions-root"
+            data-students="{{ students | tojson }}"
+        ></div>
     </main>
 </div>
+
+<!-- React CDN -->
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+{% raw %}
+<script type="text/babel">
+    const HEADERS = ['ID', 'Name', 'Gender', 'Dept', 'Year', 'Hostel', 'Sleep', 'Clean', 'Noise', 'Guests', 'Study', 'Room'];
+    const HEADER_ICONS = [null, null, null, null, null, null, '🌙', '🧹', '🔊', '👥', '📖', '🚪'];
+
+    function SubmissionsTable({ students }) {
+        const [query, setQuery] = React.useState('');
+        const [filterHostel, setFilterHostel] = React.useState('All');
+        const [filterGender, setFilterGender] = React.useState('All');
+
+        // derive unique hostel and gender options from data
+        const hostels = ['All', ...new Set(students.map(s => s[5]).filter(Boolean))];
+        const genders = ['All', ...new Set(students.map(s => s[2]).filter(Boolean))];
+
+        const filtered = students.filter(s => {
+            const q = query.toLowerCase();
+            const matchesSearch =
+                String(s[1] || '').toLowerCase().includes(q) ||
+                String(s[3] || '').toLowerCase().includes(q) ||
+                String(s[0] || '').toLowerCase().includes(q);
+            const matchesHostel = filterHostel === 'All' || s[5] === filterHostel;
+            const matchesGender = filterGender === 'All' || s[2] === filterGender;
+            return matchesSearch && matchesHostel && matchesGender;
+        });
+
+        return (
+            <section className="panel">
+                <div className="filter-strip">
+                    <input
+                        className="filter-input"
+                        type="text"
+                        placeholder="Search by name, department, or ID..."
+                        value={query}
+                        onChange={e => setQuery(e.target.value)}
+                    />
+                    <select
+                        className="filter-select"
+                        value={filterHostel}
+                        onChange={e => setFilterHostel(e.target.value)}
+                    >
+                        {hostels.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                    <select
+                        className="filter-select"
+                        value={filterGender}
+                        onChange={e => setFilterGender(e.target.value)}
+                    >
+                        {genders.map(g => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <span className="filter-count">
+                        {filtered.length} of {students.length} students
+                    </span>
+                </div>
+
+                <div className="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                {HEADERS.map((h, i) => (
+                                    <th key={h}>
+                                        {HEADER_ICONS[i] && <span style={{ marginRight: '4px' }}>{HEADER_ICONS[i]}</span>}
+                                        {h}
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filtered.length === 0 ? (
+                                <tr>
+                                    <td colSpan={12} style={{ textAlign: 'center', padding: '24px', color: '#5d6d93' }}>
+                                        No students match your search.
+                                    </td>
+                                </tr>
+                            ) : (
+                                filtered.map(s => (
+                                    <tr key={s[0]}>
+                                        {s.map((val, i) => (
+                                            <td key={i}>
+                                                {val === null || val === undefined ? '-' : String(val)}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        );
+    }
+
+    const el = document.getElementById('submissions-root');
+    const students = JSON.parse(el.dataset.students || '[]');
+    ReactDOM.createRoot(el).render(<SubmissionsTable students={students} />);
+</script>
+{% endraw %}
 </body>
 </html>

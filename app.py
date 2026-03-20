@@ -620,7 +620,7 @@ def submissions():
     students = cur.fetchall()
     cur.close()
     conn.close()
-
+    students = [list(row) for row in students]
     return render_template("submissions.html", students=students)
 
 
@@ -678,12 +678,22 @@ def dashboard():
 
     cur.close()
     conn.close()
+    
+    notifications_json = [
+    {
+        "notification_id": n["notification_id"],
+        "message": n["message"],
+        "is_read": n["is_read"],
+        "created_at": n["created_at"].strftime('%b %d, %I:%M %p') if n["created_at"] else ""
+    }
+    for n in notifications
+    ]
     return render_template(
         "dashboard.html",
         student=student,
         preferences=preferences,
         has_preferences=has_preferences,
-        notifications=notifications,
+        notifications=notifications_json,
         unread_notifications=unread_notifications,
     )
 
