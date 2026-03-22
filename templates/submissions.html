@@ -235,11 +235,9 @@
             <a class="btn-soft" href="/"><i class="fa-solid fa-house"></i>Return Home</a>
         </div>
 
-        <!-- React mounts here — students data injected via data attribute -->
-        <div
-            id="submissions-root"
-            data-students="{{ students | tojson }}"
-        ></div>
+        <!-- React mounts here — students data injected via script tag -->
+        <div id="submissions-root"></div>
+        <script id="students-data" type="application/json">{{ students | tojson }}</script>
     </main>
 </div>
 
@@ -340,7 +338,7 @@
     }
 
     const el = document.getElementById('submissions-root');
-    const students = JSON.parse(el.dataset.students || '[]');
+    const students = JSON.parse(document.getElementById('students-data').textContent || '[]');
     ReactDOM.createRoot(el).render(<SubmissionsTable students={students} />);
 </script>
 {% endraw %}
