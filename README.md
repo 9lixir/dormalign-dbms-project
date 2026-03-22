@@ -1,5 +1,9 @@
 # Dorm Align: Roommate Compatibility System
 
+**Course:** Web Application Programming 
+**Institution:** IOE, Thapathali Campus  
+**Team:** Ayushma Devkota THA080BCT008 · Purnima Bhandari THA080BCT029 · Rakesh Yadav THA080BCT030
+
 ## Project Description
 The **Roommate Compatibility System: Dorm Align** is a database-driven hostel room allocation system designed to improve roommate matching through data analysis. Instead of assigning rooms randomly, the system collects students' lifestyle preferences, such as sleep schedule, cleanliness, study habits, and smoking/guest preferences, then calculates a compatibility score to identify suitable roommate pairings.
 
